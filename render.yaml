@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: proctorless-exam-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k eventlet -w 1 -b 0.0.0.0:$PORT app:app
+    plan: free # Note: The free plan only has 512MB RAM, which might not be enough for heavy ML models. Upgrade if it crashes.
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12

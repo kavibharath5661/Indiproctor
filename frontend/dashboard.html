@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Integrity Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --bg-body: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-body);
+            min-height: 100vh;
+            padding: 40px;
+            color: var(--text-main);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 40px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        h1 {
+            color: var(--text-main);
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+        
+        .score-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 60px;
+        }
+        
+        .score-hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.03)"/></svg>');
+            opacity: 0.5;
+        }
+        
+        .score-label {
+            color: #94a3b8;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        
+        .score-display {
+            position: relative;
+            z-index: 1;
+            text-align: left;
+        }
+        
+        .score-number {
+            font-size: 80px;
+            font-weight: 800;
+            color: white;
+            line-height: 1;
+        }
+        
+        .score-badge {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 8px 24px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .info-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        
+        .info-label {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        
+        .info-value {
+            color: var(--text-main);
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0 0 20px 0;
+            letter-spacing: -0.3px;
+        }
+        
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .component-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+        }
+        
+        .component-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .component-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        
+        .component-score {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        
+        .progress-container {
+            height: 6px;
+            background: #f1f5f9;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+            transition: width 0.6s ease;
+        }
+        
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        
+        .chart-container {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            min-height: 300px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        
+        .loading {
+            text-align: center;
+            padding: 100px 20px;
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-container {
+            background: #fff5f5;
+            border: 2px solid #fc8181;
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+        }
+        
+        .error-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+        
+        .error-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #c53030;
+            margin-bottom: 12px;
+        }
+        
+        .error-message {
+            color: #742a2a;
+            font-size: 16px;
+        }
+        
+        .actions {
+            margin-top: 40px;
+            padding-top: 30px;
+            display: flex;
+            gap: 16px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-body);
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        Loading Exam Report...
+    </div>
+    
+    <div id="error" class="container" style="display:none;">
+        <div class="error-container">
+            <div class="error-icon">!</div>
+            <div class="error-title">Unable to Load Report</div>
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+    </div>
+    
+    <div id="report" class="container" style="display:none;">
+        <header>
+            <div>
+                <h1>Exam Integrity Report</h1>
+                <div class="subtitle">AI-Powered Proctoring Analysis</div>
+            </div>
+            <div class="actions" style="margin: 0; padding: 0; border: none;">
+                <button class="btn btn-secondary" onclick="window.print()">Export Report</button>
+                <a href="/" class="btn btn-primary">Back to Dashboard</a>
+            </div>
+        </header>
+        
+        <div class="score-hero">
+            <div class="score-display">
+                <div class="score-label">Overall Integrity Score</div>
+                <div class="score-number" id="overallScore">--</div>
+                <div class="score-badge" id="scoreBadge">--</div>
+            </div>
+            <div style="flex: 1; min-width: 0; max-width: 300px;">
+                <canvas id="scoreDoughnutChart" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));"></canvas>
+            </div>
+        </div>
+        
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-label">Student ID</div>
+                <div class="info-value" id="studentId">--</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">Exam ID</div>
+                <div class="info-value" id="examId">--</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">Session ID</div>
+                <div class="info-value" id="sessionId" style="font-size: 14px; word-break: break-all;">--</div>
+            </div>
+            <div class="info-card">
+                <div class="info-label">Date & Time</div>
+                <div class="info-value" id="examDate" style="font-size: 16px;">--</div>
+            </div>
+        </div>
+        
+        <h2 class="section-title">Component Analysis</h2>
+        
+        <div class="components-grid">
+            <div class="component-card">
+                <div class="component-header">
+                    <span class="component-name">Eye Gaze</span>
+                    <div class="component-score" id="eyeScore">--</div>
+                </div>
+                <div class="progress-container"><div class="progress-bar" id="eyeProgress" style="width: 0%"></div></div>
+            </div>
+            
+            <div class="component-card">
+                <div class="component-header">
+                    <span class="component-name">Speech Analysis</span>
+                    <div class="component-score" id="speechScore">--</div>
+                </div>
+                <div class="progress-container"><div class="progress-bar" id="speechProgress" style="width: 0%; background: var(--success);"></div></div>
+            </div>
+            
+            <div class="component-card">
+                <div class="component-header">
+                    <span class="component-name">Unauthorized Devices</span>
+                    <div class="component-score" id="gadgetScore">--</div>
+                </div>
+                <div class="progress-container"><div class="progress-bar" id="gadgetProgress" style="width: 0%; background: var(--warning);"></div></div>
+            </div>
+            
+            <div class="component-card">
+                <div class="component-header">
+                    <span class="component-name">Face Count</span>
+                    <div class="component-score" style="color: var(--text-main);" id="faceCount">--</div>
+                </div>
+            </div>
+        </div>
+        
+        <h2 class="section-title">Timeline Analysis</h2>
+        <div class="analytics-grid">
+            <div class="chart-container" style="grid-column: span 2;">
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+
+
+        <!-- ========================================== -->
+        <!-- VIOLATIONS SUMMARY SECTION -->
+        <!-- ========================================== -->
+        <div class="violations-section" style="margin-top: 40px; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <h2 style="font-size: 24px; margin-bottom: 20px; color: #1e293b; border-bottom: 4px solid #ef4444; padding-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                Violations Summary
+            </h2>
+            
+            <!-- Tab Switch Violations -->
+            <div id="tabSwitchViolationCard" style="display: none; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-left: 6px solid #ef4444; padding: 20px; margin-bottom: 15px; border-radius: 10px; box-shadow: 0 3px 8px rgba(239,68,68,0.3);">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+                    <div>
+                        <strong style="color: #991b1b; font-size: 19px; display: block;">TAB SWITCH DETECTED</strong>
+                        <span style="color: #7f1d1d; font-size: 13px;">Browser focus lost</span>
+                    </div>
+                </div>
+                <p style="color: #7f1d1d; margin: 0; font-size: 16px;">
+                    Tab switched <span id="tabSwitchCount" style="font-weight: bold; font-size: 20px; color: #dc2626;">0</span> times
+                </p>
+                <p style="color: #dc2626; margin: 10px 0 0 0; font-size: 15px; font-weight: 700; background: rgba(220,38,38,0.15); padding: 10px; border-radius: 5px; text-align: center;">
+                    CRITICAL - EXAM CLOSED IMMEDIATELY
+                </p>
+            </div>
+            
+            <!-- Phone Violations -->
+            <div id="phoneViolationCard" style="display: none; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-left: 6px solid #ef4444; padding: 20px; margin-bottom: 15px; border-radius: 10px; box-shadow: 0 3px 8px rgba(239,68,68,0.3);">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+                    <div>
+                        <strong style="color: #991b1b; font-size: 19px; display: block;">PHONE ACCESS ATTEMPTED</strong>
+                        <span style="color: #7f1d1d; font-size: 13px;">Unauthorized device detected</span>
+                    </div>
+                </div>
+                <p style="color: #7f1d1d; margin: 0; font-size: 16px;">
+                    Mobile phone detected <span id="phoneDetectionCount" style="font-weight: bold; font-size: 20px; color: #dc2626;">0</span> times
+                </p>
+                <p style="color: #991b1b; margin: 10px 0 0 0; font-size: 14px; font-weight: 600; background: rgba(220,38,38,0.1); padding: 8px; border-radius: 5px;">
+                    Student attempted unauthorized device access
+                </p>
+            </div>
+            
+            <!-- Multiple Face Violations -->
+            <div id="multipleFaceViolationCard" style="display: none; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-left: 6px solid #dc2626; padding: 20px; margin-bottom: 15px; border-radius: 10px; box-shadow: 0 3px 8px rgba(220,38,38,0.3);">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+                    <div>
+                        <strong style="color: #991b1b; font-size: 19px; display: block;">MULTIPLE PERSONS DETECTED</strong>
+                        <span style="color: #7f1d1d; font-size: 13px;">Exam integrity compromised</span>
+                    </div>
+                </div>
+                <p style="color: #7f1d1d; margin: 0; font-size: 16px;">
+                    <span id="additionalPersonCount" style="font-weight: bold; font-size: 20px; color: #dc2626;">2</span> person(s) in frame
+                </p>
+                <p style="color: #dc2626; margin: 10px 0 0 0; font-size: 15px; font-weight: 700; background: rgba(220,38,38,0.15); padding: 10px; border-radius: 5px; text-align: center;">
+                    CRITICAL - EXAM INTEGRITY SERIOUSLY COMPROMISED
+                </p>
+            </div>
+            
+            <!-- Speech Violations -->
+            <div id="speechViolationCard" style="display: none; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 6px solid #f59e0b; padding: 20px; border-radius: 10px; box-shadow: 0 3px 8px rgba(245,158,11,0.3); margin-bottom: 15px;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+                    <div>
+                        <strong style="color: #92400e; font-size: 19px; display: block;">SPEECH DETECTED</strong>
+                        <span style="color: #78350f; font-size: 13px;">Unauthorized verbal communication</span>
+                    </div>
+                </div>
+                <p style="color: #78350f; margin: 0; font-size: 16px;">
+                    Voice activity <span id="speechDetectionCount" style="font-weight: bold; font-size: 20px; color: #f59e0b;">0</span> times
+                </p>
+                <p style="color: #92400e; margin: 10px 0 0 0; font-size: 14px; font-style: italic; background: rgba(245,158,11,0.1); padding: 8px; border-radius: 5px;">
+                    Verbal communication recorded during exam
+                </p>
+            </div>
+            
+            <!-- Eye Gaze Violations -->
+            <div id="eyeGazeViolationCard" style="display: none; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 6px solid #f59e0b; padding: 20px; border-radius: 10px; box-shadow: 0 3px 8px rgba(245,158,11,0.3); margin-bottom: 15px;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+                    <div>
+                    <div>
+                        <strong style="color: #92400e; font-size: 19px; display: block;">LOOKING AWAY DETECTED</strong>
+                        <span style="color: #78350f; font-size: 13px;">Student not focusing on screen</span>
+                    </div>
+                </div>
+                <p style="color: #78350f; margin: 0; font-size: 16px;">
+                    Looked away <span id="eyeGazeCount" style="font-weight: bold; font-size: 20px; color: #f59e0b;">0</span> times
+                </p>
+                <p style="color: #92400e; margin: 10px 0 0 0; font-size: 14px; font-style: italic; background: rgba(245,158,11,0.1); padding: 8px; border-radius: 5px;">
+                    Student frequently looked away from screen
+                </p>
+            </div>
+            
+            <!-- Lip Movement Violations -->
+            <div id="lipMovementViolationCard" style="display: none; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 6px solid #f59e0b; padding: 20px; border-radius: 10px; box-shadow: 0 3px 8px rgba(245,158,11,0.3); margin-bottom: 15px;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+                    <div>
+                    <div>
+                        <strong style="color: #92400e; font-size: 19px; display: block;">LIP MOVEMENT DETECTED</strong>
+                        <span style="color: #78350f; font-size: 13px;">Possible verbal communication</span>
+                    </div>
+                </div>
+                <p style="color: #78350f; margin: 0; font-size: 16px;">
+                    Lip movement detected <span id="lipMovementCount" style="font-weight: bold; font-size: 20px; color: #f59e0b;">0</span> times
+                </p>
+                <p style="color: #92400e; margin: 10px 0 0 0; font-size: 14px; font-style: italic; background: rgba(245,158,11,0.1); padding: 8px; border-radius: 5px;">
+                    Lip movements detected during exam
+                </p>
+            </div>
+            
+            <!-- No Violations -->
+            <div id="noViolationsMessage" style="display: block; text-align: center; padding: 40px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; border: 3px dashed #10b981;">
+                <span style="font-size: 56px; color: #10b981;">&#10003;</span>
+                <p style="margin: 15px 0 0 0; font-size: 20px; color: #065f46; font-weight: 700;">No Violations Detected</p>
+                <p style="margin: 8px 0 0 0; font-size: 15px; color: #047857;">Student maintained exam integrity</p>
+            </div>
+        </div>
+
+    <script src="config.js"></script>
+    <script>
+        // API_URL is now loaded from config.js
+        
+                
+        // ✅ FIX: Update violations summary with ALL violation types
+        function updateViolationsSummary(data) {
+            console.log('Updating violations with data:', data);
+            let hasViolations = false;
+            
+            // Tab switch violations
+            const strikeHistory = data.strike_history || [];
+            const tabSwitches = strikeHistory.filter(s => s.type === 'TAB_SWITCH').length;
+            if (tabSwitches > 0) {
+                const card = document.getElementById('tabSwitchViolationCard');
+                if (card) {
+                    card.style.display = 'block';
+                    const countEl = document.getElementById('tabSwitchCount');
+                    if (countEl) countEl.textContent = tabSwitches;
+                    const noViolMsg = document.getElementById('noViolationsMessage');
+                    if (noViolMsg) noViolMsg.style.display = 'none';
+                    hasViolations = true;
+                    console.log('✅ Tab switch violations:', tabSwitches);
+                }
+            }
+            
+            // Phone violations - access from gadget_metrics
+            const phoneDetections = data.gadget_metrics?.phone_detections || data.phone_detections || 0;
+            if (phoneDetections > 0) {
+                const card = document.getElementById('phoneViolationCard');
+                if (card) {
+                    card.style.display = 'block';
+                    const countEl = document.getElementById('phoneDetectionCount');
+                    if (countEl) countEl.textContent = phoneDetections;
+                    const noViolMsg = document.getElementById('noViolationsMessage');
+                    if (noViolMsg) noViolMsg.style.display = 'none';
+                    hasViolations = true;
+                    console.log('✅ Phone violations:', phoneDetections);
+                }
+            }
+            
+            // Multiple face violations - access from face_metrics or face_info
+            const multipleFaces = data.face_metrics?.multiple_faces_count || data.face_info?.multiple_faces_count || data.multiple_faces_count || 0;
+            if (multipleFaces > 0) {
+                const card = document.getElementById('multipleFaceViolationCard');
+                if (card) {
+                    card.style.display = 'block';
+                    const total = multipleFaces + 1;
+                    const countEl = document.getElementById('additionalPersonCount');
+                    if (countEl) countEl.textContent = total;
+                    const noViolMsg = document.getElementById('noViolationsMessage');
+                    if (noViolMsg) noViolMsg.style.display = 'none';
+                    hasViolations = true;
+                    console.log('✅ Multiple faces:', multipleFaces);
+                }
+            }
+            
+            // Speech violations - access from audio_metrics
+            const speechEvents = data.audio_metrics?.speech_events || data.speech_events || 0;
+            if (speechEvents > 0) {
+                const card = document.getElementById('speechViolationCard');
+                if (card) {
+                    card.style.display = 'block';
+                    const countEl = document.getElementById('speechDetectionCount');
+                    if (countEl) countEl.textContent = speechEvents;
+                    const noViolMsg = document.getElementById('noViolationsMessage');
+                    if (noViolMsg) noViolMsg.style.display = 'none';
+                    hasViolations = true;
+                    console.log('✅ Speech violations:', speechEvents);
+                }
+            }
+            
+            // Eye gaze violations - access from eye_metrics
+            const eyeGazeCount = data.eye_metrics?.looking_away_count || data.looking_away_count || 0;
+            if (eyeGazeCount > 10) {  // Only show if significant
+                const card = document.getElementById('eyeGazeViolationCard');
+                if (card) {
+                    card.style.display = 'block';
+                    const countEl = document.getElementById('eyeGazeCount');
+                    if (countEl) countEl.textContent = eyeGazeCount;
+                    const noViolMsg = document.getElementById('noViolationsMessage');
+                    if (noViolMsg) noViolMsg.style.display = 'none';
+                    hasViolations = true;
+                    console.log('✅ Eye gaze violations:', eyeGazeCount);
+                }
+            }
+            
+            // Lip movement violations - access from lip_metrics
+            const lipMovementCount = data.lip_metrics?.detections || data.lip_detections || 0;
+            if (lipMovementCount > 5) {  // Only show if significant
+                const card = document.getElementById('lipMovementViolationCard');
+                if (card) {
+                    card.style.display = 'block';
+                    const countEl = document.getElementById('lipMovementCount');
+                    if (countEl) countEl.textContent = lipMovementCount;
+                    const noViolMsg = document.getElementById('noViolationsMessage');
+                    if (noViolMsg) noViolMsg.style.display = 'none';
+                    hasViolations = true;
+                    console.log('✅ Lip movement violations:', lipMovementCount);
+                }
+            }
+            
+            // Show/hide no violations message
+            const noViolMsg = document.getElementById('noViolationsMessage');
+            if (noViolMsg) {
+                if (!hasViolations) {
+                    noViolMsg.style.display = 'block';
+                    // Hide all violation cards
+                    const tabCard = document.getElementById('tabSwitchViolationCard');
+                    const phoneCard = document.getElementById('phoneViolationCard');
+                    const faceCard = document.getElementById('multipleFaceViolationCard');
+                    const speechCard = document.getElementById('speechViolationCard');
+                    const eyeCard = document.getElementById('eyeGazeViolationCard');
+                    const lipCard = document.getElementById('lipMovementViolationCard');
+                    if (tabCard) tabCard.style.display = 'none';
+                    if (phoneCard) phoneCard.style.display = 'none';
+                    if (faceCard) faceCard.style.display = 'none';
+                    if (speechCard) speechCard.style.display = 'none';
+                    if (eyeCard) eyeCard.style.display = 'none';
+                    if (lipCard) lipCard.style.display = 'none';
+                    console.log('✅ No violations detected');
+                } else {
+                    noViolMsg.style.display = 'none';
+                    console.log('⚠️ Violations found and displayed');
+                }
+            }
+        }
+        
+async function loadReport() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session');
+            
+            if (!sessionId) {
+                showError('No session ID provided in URL parameter');
+                return;
+            }
+            
+            try {
+                console.log('📊 Loading report for:', sessionId);
+                const response = await fetch(`${API_URL}/api/exam/report/${sessionId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Report data:', data);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                displayReport(data);
+                
+            } catch (error) {
+                console.error('❌ Error loading report:', error);
+                showError(`${error.message}\n\nPlease check that the backend is running and the session ID is correct.`);
+            }
+        }
+        
+        function displayReport(data) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('report').style.display = 'block';
+            
+            // Overall score
+            const score = Math.round(data.overall_score || 0);
+            const isBrokenIntegrity = data.auto_submitted || score <= 0;
+            
+            if (isBrokenIntegrity) {
+                document.getElementById('overallScore').textContent = 'NIL';
+            } else {
+                document.getElementById('overallScore').textContent = score;
+            }
+            
+            // Badge
+            const badgeEl = document.getElementById('scoreBadge');
+            if (isBrokenIntegrity) {
+                badgeEl.textContent = 'POOR';
+                badgeEl.style.background = 'rgba(239, 68, 68, 0.95)'; // Red
+            } else if (score >= 90) {
+                badgeEl.textContent = 'EXCELLENT';
+                badgeEl.style.background = 'rgba(76, 175, 80, 0.95)'; // Green
+            } else if (score >= 70) {
+                badgeEl.textContent = 'GOOD';
+                badgeEl.style.background = 'rgba(16, 185, 129, 0.95)'; // Teal
+            } else if (score >= 50) {
+                badgeEl.textContent = 'FAIR';
+                badgeEl.style.background = 'rgba(245, 158, 11, 0.95)'; // Orange
+            } else {
+                badgeEl.textContent = 'POOR';
+                badgeEl.style.background = 'rgba(239, 68, 68, 0.95)'; // Red
+            }
+            
+            // Exam info
+            document.getElementById('studentId').textContent = data.student_id || 'N/A';
+            document.getElementById('examId').textContent = data.exam_id || 'N/A';
+            document.getElementById('sessionId').textContent = data.session_id || 'N/A';
+            
+            // Date
+            const dateStr = data.start_time || data.end_time || new Date().toISOString();
+            const date = new Date(dateStr);
+            document.getElementById('examDate').textContent = date.toLocaleString();
+            
+            // Component scores
+            let eyeScore = Math.round(data.component_scores?.eye_gaze || 0);
+            let speechScore = Math.round(data.component_scores?.speech || 0);
+            let gadgetScore = Math.round(data.component_scores?.gadgets || 0);
+            const faceCount = data.face_count || 1;
+            
+            if (isBrokenIntegrity) {
+                eyeScore = 0;
+                speechScore = 0;
+                gadgetScore = 0;
+            }
+            
+            document.getElementById('eyeScore').textContent = isBrokenIntegrity ? 'NIL' : eyeScore;
+            document.getElementById('speechScore').textContent = isBrokenIntegrity ? 'NIL' : speechScore;
+            document.getElementById('gadgetScore').textContent = isBrokenIntegrity ? 'NIL' : gadgetScore;
+            document.getElementById('faceCount').textContent = faceCount + ' face(s)';
+            
+            // Progress bars with animation
+            setTimeout(() => {
+                document.getElementById('eyeProgress').style.width = eyeScore + '%';
+                if(isBrokenIntegrity) document.getElementById('eyeProgress').style.background = '#64748b';
+                
+                document.getElementById('speechProgress').style.width = speechScore + '%';
+                if(isBrokenIntegrity) document.getElementById('speechProgress').style.background = '#64748b';
+                
+                document.getElementById('gadgetProgress').style.width = gadgetScore + '%';
+                if(isBrokenIntegrity) document.getElementById('gadgetProgress').style.background = '#64748b';
+            }, 100);
+            
+            console.log('✅ Report displayed successfully');
+            
+            // ✅ FIX: Update violations display
+            updateViolationsSummary(data);
+
+            // Chart.js Graphs setup
+            initCharts(data, eyeScore, speechScore, gadgetScore);
+        }
+        
+        function initCharts(data, eyeScore, speechScore, gadgetScore) {
+            const isBrokenIntegrity = data.auto_submitted || Math.round(data.overall_score || 0) <= 0;
+            const chartData = isBrokenIntegrity ? [0.1, 0.1, 0.1] : [eyeScore * 0.40, speechScore * 0.35, gadgetScore * 0.25];
+            const bgColors = isBrokenIntegrity ? ['#64748b', '#475569', '#334155'] : ['#0ea5e9', '#10b981', '#f59e0b'];
+            
+            // Doughnut Chart for Component Health Breakdown
+            const doughnutCtx = document.getElementById('scoreDoughnutChart').getContext('2d');
+            new Chart(doughnutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Eye Gaze', 'Speech', 'Devices'],
+                    datasets: [{
+                        data: chartData, // Weighted breakdown matching app.py formula
+                        backgroundColor: bgColors,
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#e2e8f0', usePointStyle: true, padding: 20 } },
+                        tooltip: { callbacks: { label: function(context) { return ' ' + context.label + ': ' + context.raw.toFixed(1) + ' weighted pts'; } } }
+                    },
+                    cutout: '75%'
+                }
+            });
+
+            // Timeline Graph
+            if (data.violation_logs) {
+                const logs = data.violation_logs;
+                const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+                
+                // Map out the data into scatter datasets
+                const startUnix = new Date(data.start_time).getTime();
+                
+                const processLogs = (logArray, yValue) => {
+                    return (logArray || []).map(entry => {
+                        let tz = entry.timestamp; // If backend gives unix float
+                        if(typeof tz === 'string') return null; // Fallback if format is weird
+                        
+                        // Because time.time() from backend is literal unix timestamp...
+                        // Let's normalize it to "seconds since exam start"
+                        let examStart = startUnix / 1000;
+                        let elapsedSeconds = tz - examStart;
+                        // Avoid crazy outliers if start time and timestamp are mismatched
+                        if(elapsedSeconds < -10 || elapsedSeconds > 7200) elapsedSeconds = Math.random() * 60; 
+                        
+                        return { x: Math.max(0, elapsedSeconds / 60), y: yValue }; // Minutes elapsed
+                    }).filter(v => v);
+                };
+
+                const datasets = [
+                    { label: 'Gadget', backgroundColor: '#ef4444', data: processLogs(logs.gadgets, 3), pointRadius: 6 },
+                    { label: 'Multiple Faces', backgroundColor: '#f97316', data: processLogs(logs.multiple_faces, 2), pointRadius: 6 },
+                    { label: 'Speech', backgroundColor: '#f59e0b', data: processLogs(logs.speech, 1), pointRadius: 5 },
+                    { label: 'Eye Gaze', backgroundColor: '#0ea5e9', data: processLogs(logs.eye_gaze, 0), pointRadius: 4 },
+                    { label: 'Tab Switch', backgroundColor: '#991b1b', data: processLogs(logs.tab_switch, 4), pointRadius: 7 },
+                ];
+
+                new Chart(timelineCtx, {
+                    type: 'scatter',
+                    data: { datasets: datasets.filter(d => d.data.length > 0) },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                type: 'linear', position: 'bottom',
+                                title: { display: true, text: 'Time Elapsed (Minutes)' },
+                                min: 0
+                            },
+                            y: {
+                                min: -0.5, max: 4.5,
+                                ticks: {
+                                    callback: function(value, index, ticks) {
+                                        if(value === 0) return 'Eye Gaze';
+                                        if(value === 1) return 'Speech';
+                                        if(value === 2) return 'Faces';
+                                        if(value === 3) return 'Gadget';
+                                        if(value === 4) return 'Tab Switch';
+                                        return '';
+                                    },
+                                    stepSize: 1
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: { callbacks: { label: function(context) { return context.dataset.label + ' at ' + context.raw.x.toFixed(2) + 'm'; } } }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('errorMessage').textContent = message;
+        }
+        
+        // Load report on page load
+        loadReport();
+    </script>
+</body>
+</html>

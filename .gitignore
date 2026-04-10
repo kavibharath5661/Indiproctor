@@ -1,0 +1,26 @@
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.env
+
+# MacOS
+.DS_Store
+
+# Logs and outputs
+backend/logs/
+backend/reports/
+backend/evaluation_outputs/
+backend/storage/
+
+# Heavy ML Models (optional, but YOLO models might be okay up to 25MB on GitHub)
+# backend/yolov8*.pt # Leaving them un-ignored so they can be pushed for deployment

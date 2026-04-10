@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamPortal - Professional Exam Platform</title>
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --primary-light: #38bdf8;
+            --surface: #ffffff;
+            --surface-hover: #f8fafc;
+            --bg-body: #0f172a;
+            --bg-panel: #1e293b;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-body);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text-main);
+        }
+        
+        .login-wrapper {
+            display: flex;
+            min-height: 100vh;
+            background: var(--surface);
+        }
+
+        .login-sidebar {
+            flex: 1;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('data:image/svg+xml,<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h200v200H0z" fill="none"/><circle cx="100" cy="100" r="80" stroke="rgba(255,255,255,0.05)" stroke-width="2" fill="none"/></svg>') repeat;
+            opacity: 0.3;
+        }
+
+        .login-sidebar .logo {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .login-sidebar .logo span {
+            color: var(--primary);
+        }
+
+        .login-sidebar p {
+            font-size: 18px;
+            color: #94a3b8;
+            line-height: 1.6;
+            max-width: 400px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background: var(--surface);
+        }
+
+        .login-card {
+            max-width: 420px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin-bottom: 32px;
+            font-size: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.01);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--primary);
+            color: white;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .exam-container {
+            display: none;
+            height: 100vh;
+            background: #f1f5f9;
+        }
+
+        .exam-header {
+            background: var(--surface);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            z-index: 10;
+        }
+
+        .exam-body {
+            display: flex;
+            height: calc(100vh - 73px);
+            position: relative;
+        }
+
+        .exam-main {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .exam-sidebar {
+            position: fixed;
+            top: 85px;
+            right: 32px;
+            width: 340px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            box-shadow: var(--shadow-xl);
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.5);
+            z-index: 1000;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .exam-sidebar.active {
+            display: flex;
+        }
+
+        .floating-proctor-window {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            width: 300px;
+            background: rgba(15, 23, 42, 0.85); /* Dark elegant glass */
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow: var(--shadow-2xl);
+            z-index: 1000;
+            display: none;
+            color: white;
+        }
+
+        .floating-proctor-window.active {
+            display: block;
+        }
+
+        .floating-proctor-window .section-title {
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .custom-modal {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .custom-modal {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 20px; font-weight: 700; margin-bottom: 16px; color: var(--gray-900); text-align: left;
+        }
+        .modal-text {
+            font-size: 15px; color: var(--gray-500); margin-bottom: 32px; line-height: 1.6; text-align: left; white-space: pre-wrap;
+        }
+        .modal-actions {
+            display: flex; gap: 12px; justify-content: flex-end;
+        }
+        .modal-btn {
+            padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; font-size: 14px;
+        }
+        .modal-btn-primary { background: var(--primary); color: white; }
+        .modal-btn-secondary { background: var(--gray-100); color: var(--gray-700); }
+
+        .monitoring-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            color: var(--gray-500);
+            letter-spacing: 0.5px;
+        }
+
+        .video-feed {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: black;
+            margin-bottom: 12px;
+        }
+
+        .video-feed video {
+            width: 100%;
+            height: auto;
+        }
+
+        .video-label {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+        }
+
+        .score-card {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+            border-radius: 16px;
+            padding: 20px;
+            color: white;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+        }
+
+        .score-value {
+            font-size: 56px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metric-item {
+            margin-bottom: 14px;
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .metric-value {
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-light) 0%, var(--primary) 100%);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .audio-visualizer {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .audio-level-bar {
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .audio-level-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, var(--warning) 50%, var(--danger) 100%);
+            width: 0%;
+            transition: width 0.05s linear;
+        }
+
+        .audio-status {
+            margin-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            color: white;
+            font-size: 13px;
+        }
+
+        .audio-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .indicator-active {
+            background: var(--success);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .debug-panel {
+            background: #fef3c7;
+            border: 2px solid var(--warning);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .debug-line {
+            margin: 2px 0;
+        }
+
+        .alert-box {
+            padding: 16px;
+            margin-top: 12px;
+            border-radius: 12px;
+            display: none;
+            font-weight: 600;
+        }
+
+        .alert-box.show {
+            display: block;
+            animation: shake 0.5s;
+        }
+
+        .alert-faces {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+        }
+
+        .alert-phone {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            color: #92400e;
+        }
+
+        .alert-lip-warning1 {
+            background: #fef9c3;
+            border: 2px solid #eab308;
+            color: #713f12;
+        }
+
+        .alert-lip-warning2 {
+            background: #fed7aa;
+            border: 2px solid #f97316;
+            color: #7c2d12;
+        }
+
+        .alert-lip-penalty {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+            font-weight: 700;
+        }
+
+        .alert-speech-warning1 {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            color: #92400e;
+            font-weight: 600;
+        }
+
+        .alert-speech-warning2 {
+            background: #fed7aa;
+            border: 2px solid #f97316;
+            color: #7c2d12;
+            font-weight: 700;
+        }
+
+        .strike-warning {
+            display: none;
+        }
+
+        .strike-warning-1 {
+            background: #fef9c3;
+            border: 3px solid #eab308;
+            color: #713f12;
+            font-weight: 600;
+        }
+
+        .strike-warning-2 {
+            background: #fed7aa;
+            border: 3px solid #f97316;
+            color: #7c2d12;
+            font-weight: 700;
+            animation: pulse 1s infinite;
+        }
+
+        .strike-warning-3 {
+            background: #fee2e2;
+            border: 3px solid #dc2626;
+            color: #991b1b;
+            font-weight: 700;
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .question-number {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .question-text {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .action-buttons {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-submit {
+            flex: 1;
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-end {
+            flex: 1;
+            background: var(--danger);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="loginScreen" class="login-wrapper">
+        <div class="login-sidebar">
+            <div class="logo">Proctor<span>AI</span></div>
+            <p>Ensure academic integrity with state-of-the-art vision and audio analysis models built for professional examinations.</p>
+        </div>
+        <div class="login-container">
+            <div class="login-card">
+                <h1>Sign In to Exam</h1>
+                <p class="subtitle">Enter your credentials to begin</p>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Student ID</label>
+                        <input type="text" id="studentId" value="21MID0009" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Exam Code</label>
+                        <input type="text" id="examId" value="CAPSTONE2024" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Exam Name</label>
+                        <input type="text" id="examName" value="AI Proctorless System" required>
+                    </div>
+                    <button type="submit" class="btn" style="margin-top: 10px;">Start Secure Session →</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="examScreen" class="exam-container">
+        <div class="exam-header">
+            <div>
+                <strong id="examTitleHeader" style="font-size: 18px; color: var(--text-main);">Exam</strong>
+                <span style="margin-left: 12px; color: var(--text-muted); font-size: 14px;">Examinee: <span id="studentIdHeader" style="color: var(--primary); font-weight: 600;"></span></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <button class="btn" onclick="document.getElementById('examSidebar').classList.toggle('active')" style="background: white; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; font-size: 13px; box-shadow: none;">Show Integrity Metrics</button>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: bold; color: var(--text-main);" id="timerDisplay">00:00:00</div>
+                <button class="btn btn-submit" style="background:var(--primary); color:white; padding: 10px 24px; box-shadow: none; border-radius: 8px;" onclick="customConfirm('Submit exam? Are you sure?', () => submitExam())">Submit Assessment</button>
+            </div>
+        </div>
+
+        <div class="exam-body">
+            <div class="exam-main">
+                <div id="examQuestions"></div>
+            </div>
+
+            <div class="exam-sidebar" id="examSidebar">
+                <div id="integrityScoreContainer" style="display: block;">
+                    <div class="monitoring-section">
+                        <div class="section-title">Overall Score</div>
+                        <div class="score-card">
+                            <div style="font-size: 12px; opacity: 0.9;">Integrity Score</div>
+                            <div class="score-value" id="overallScore">100</div>
+                            <div id="liveScoreBadge" style="font-size: 16px; font-weight: 800; margin-top: 5px; color: #10b981;">EXCELLENT</div>
+                        </div>
+                    </div>
+
+                    <div class="monitoring-section" style="margin-bottom: 20px;">
+                        <div class="section-title">Components</div>
+                        
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span>Eye Gaze</span>
+                                <span class="metric-value" id="eyeGazeScore">100</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="eyeGazeProgress" style="width: 100%"></div>
+                            </div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span>Face Count</span>
+                                <span class="metric-value" id="faceCount">1</span>
+                            </div>
+                            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                                Monitoring only (no score penalty)
+                            </div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span>Speech</span>
+                                <span class="metric-value" id="speechScore">100</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="speechProgress" style="width: 100%"></div>
+                            </div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span>Gadgets</span>
+                                <span class="metric-value" id="gadgetScore">100</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="gadgetProgress" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alerts-container">
+                    <div id="multipleFacesAlert" class="alert-box alert-faces">
+                        <strong>MULTIPLE PEOPLE DETECTED</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">Only 1 person allowed.</div>
+                    </div>
+
+                    <div id="phoneAlert" class="alert-box alert-phone">
+                        <strong>PHONE DETECTED</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">Put away all devices immediately.</div>
+                        <div style="margin-top: 4px; font-size: 12px;">Detections: <span id="phoneCount">0</span></div>
+                    </div>
+
+                    <div id="lipWarning1" class="alert-box alert-lip-warning1">
+                        <strong>LIP MOVEMENT DETECTED</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">First Warning - No Penalty</div>
+                        <div style="font-size: 12px;">Please stay silent</div>
+                    </div>
+
+                    <div id="lipWarning2" class="alert-box alert-lip-warning2">
+                        <strong>LIP MOVEMENT DETECTED</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">Final Warning!</div>
+                        <div style="font-size: 12px;">Next detection will reduce score</div>
+                    </div>
+
+                    <div id="lipPenalty" class="alert-box alert-lip-penalty">
+                        <strong>LIP MOVEMENT PENALTY</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">Score reduced: -<span id="lipPenaltyAmount">2</span> points</div>
+                        <div style="font-size: 12px;">Total detections: <span id="lipTotalDetections">0</span></div>
+                        <div style="font-size: 12px;">Total penalty: -<span id="lipTotalPenalty">0</span></div>
+                        <div style="font-size: 11px; margin-top: 4px; opacity: 0.8;">Silent reading OK - Only loud speech triggers strikes</div>
+                    </div>
+
+                    <div id="speechWarning1" class="alert-box alert-speech-warning1">
+                        <strong>LOUD SPEECH DETECTED</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">Warning 1/2 - Stop talking</div>
+                        <div style="font-size: 12px;">Speaking loudly may indicate cheating</div>
+                    </div>
+
+                    <div id="speechWarning2" class="alert-box alert-speech-warning2">
+                        <strong>LOUD SPEECH DETECTED</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">Final Warning 2/2</div>
+                        <div style="font-size: 12px; font-weight: 700;">Next speech = Strike added!</div>
+                    </div>
+
+                    <div id="envWarning" class="alert-box alert-speech-warning1" style="display: none; background: #e0f2fe; border: 2px solid #38bdf8; color: #0369a1;">
+                        <strong>LOUD ENVIRONMENT DETECTED</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">Background noise (TV/music) detected</div>
+                        <div style="font-size: 12px; font-weight: 700;">Please move to a quiet environment.</div>
+                    </div>
+
+                    <div id="strikeWarning1" class="alert-box strike-warning strike-warning-1">
+                        <strong>FIRST WARNING</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">Violation detected</div>
+                        <div style="font-size: 12px; margin-top: 4px;">Strikes: 1/3</div>
+                        <div style="font-size: 11px; margin-top: 4px; opacity: 0.8;">2 more violations = exam auto-submitted</div>
+                    </div>
+
+                    <div id="strikeWarning2" class="alert-box strike-warning strike-warning-2">
+                        <strong>FINAL WARNING</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">2 violations detected</div>
+                        <div style="font-size: 12px; margin-top: 4px;">Strikes: 2/3</div>
+                        <div style="font-size: 11px; margin-top: 4px; font-weight: 700;">ONE MORE VIOLATION = EXAM AUTO-SUBMITTED!</div>
+                    </div>
+
+                    <div id="strikeWarning3" class="alert-box strike-warning strike-warning-3">
+                        <strong>EXAM AUTOMATICALLY SUBMITTED</strong>
+                        <div style="margin-top: 8px; font-size: 13px;">3 strikes reached</div>
+                        <div style="font-size: 12px; margin-top: 4px;">Reason: <span id="autoSubmitReason">Violations exceeded</span></div>
+                        <div style="font-size: 12px; margin-top: 8px;">Submitting exam...</div>
+                    </div>
+                </div>
+
+                <div class="monitoring-section" id="audioMonitorSection" style="display: none;">
+                    <div class="section-title">Audio Monitor</div>
+                    
+                    <div class="audio-visualizer">
+                        <div class="audio-level-bar">
+                            <div class="audio-level-fill" id="audioLevelBar"></div>
+                        </div>
+                        <div class="audio-status">
+                            <span>
+                                <span class="audio-indicator" id="audioIndicator"></span>
+                                <span id="audioStatus">Initializing...</span>
+                            </span>
+                            <span id="audioLevelText">0</span>
+                        </div>
+                    </div>
+
+                    <div class="debug-panel" id="debugPanel">
+                        <div class="debug-line">Waiting for audio...</div>
+                    </div>
+                </div>
+
+                <!-- action buttons moved to header -->
+            </div>
+        </div>
+
+        <div class="floating-proctor-window" id="proctorWindow">
+            <div class="section-title" style="cursor: pointer; user-select: none;" onclick="toggleProctorFeeds()" title="Click to minimize/maximize">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 600; font-size: 12px; letter-spacing: 0.5px;text-transform: uppercase;">Secure Monitoring</span>
+                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 10px #22c55e; animation: pulse 1.5s infinite;"></span>
+                </div>
+                <span id="proctorToggleIcon" style="font-size: 14px; opacity: 0.7;">▼</span>
+            </div>
+            <div id="proctorFeeds">
+                <div class="video-feed">
+                    <video id="webcamVideo" autoplay muted playsinline></video>
+                    <div class="video-label">Webcam</div>
+                </div>
+                <div class="video-feed">
+                    <video id="screenVideo" autoplay muted playsinline></video>
+                    <div class="video-label">Screen</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI Overlay Modals -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="custom-modal">
+            <div class="modal-title" id="modalTitle">Alert</div>
+            <div class="modal-text" id="modalText">This is an alert.</div>
+            <div class="modal-actions" id="modalActions">
+                <button class="modal-btn modal-btn-primary" onclick="closeModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        // API_URL is now loaded from config.js
+        let socket, webcamStream, screenStream, sessionId;
+        let isExamActive = false;
+        let timerInterval, startTime;
+        let audioContext, mediaStreamSource, audioAnalyzer, audioDataArray;
+        let isRecordingAudio = false;
+        let lastAudioSend = 0;
+        let audioDebugLines = [];
+        let tabSwitchDetected = false;
+        let tabSwitchCount = 0;
+        let tabSwitchWarned = false;
+
+        function showModal(title, text, buttons) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalText').textContent = text;
+            const actions = document.getElementById('modalActions');
+            actions.innerHTML = '';
+            
+            buttons.forEach(btn => {
+                const button = document.createElement('button');
+                button.className = `modal-btn ${btn.primary ? 'modal-btn-primary' : 'modal-btn-secondary'}`;
+                button.textContent = btn.text;
+                button.onclick = () => {
+                    if(btn.onClick) btn.onClick();
+                };
+                actions.appendChild(button);
+            });
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        function customConfirm(message, onConfirm) {
+            showModal('Confirm Action', message, [
+                { text: 'Cancel', primary: false, onClick: closeModal },
+                { text: 'Confirm', primary: true, onClick: () => { closeModal(); onConfirm(); } }
+            ]);
+        }
+
+        const examQuestions = [
+            { number: 1, text: "Explain the architecture of your AI-based proctorless examination monitoring system." },
+            { number: 2, text: "What deep learning models did you use for eye gaze tracking and face detection?" },
+            { number: 3, text: "How does your NLP-based speech analysis detect unauthorized communication?" },
+            { number: 4, text: "Describe the integrity scoring algorithm. How are weights determined?" },
+            { number: 5, text: "What are the ethical and privacy considerations? How did you address them?" }
+        ];
+
+        // TAB LOCK: Detect tab switching and auto-submit immediately
+        document.addEventListener('visibilitychange', function() {
+            if (isExamActive && document.hidden && !tabSwitchDetected) {
+                tabSwitchDetected = true;
+                
+                console.log('🚨 TAB SWITCH DETECTED - Auto-submitting exam');
+                alert('🚨 EXAM AUTO-SUBMITTED!\n\nTab switching occurred!\n\nYour exam has been automatically submitted due to tab switching.');
+                
+                if (socket && socket.connected) {
+                    socket.emit('tab_switch_detected', {
+                        session_id: sessionId,
+                        timestamp: Date.now(),
+                        count: 1,
+                        reason: 'tab switching occured'
+                    });
+                }
+            }
+        });
+        
+        // FULLSCREEN EXIT DETECTION - immediately auto-submit
+        document.addEventListener('fullscreenchange', function() {
+            if (isExamActive && !document.fullscreenElement && !tabSwitchDetected) {
+                tabSwitchDetected = true;
+                
+                console.log('🚨 FULLSCREEN EXITED - Auto-submitting exam');
+                alert('🚨 EXAM AUTO-SUBMITTED!\n\nFullscreen exited!\n\nYour exam has been automatically submitted due to tab switching.');
+                
+                if (socket && socket.connected) {
+                    socket.emit('tab_switch_detected', {
+                        session_id: sessionId,
+                        timestamp: Date.now(),
+                        count: 1,
+                        reason: 'tab switching occured'
+                    });
+                }
+            }
+        });
+
+        // WINDOW BLUR: Detect window switching, minimizing, or focus loss
+        let lastFocusLoss = 0;
+        
+        window.addEventListener('blur', function() {
+            if (isExamActive && !tabSwitchDetected) {
+                const now = Date.now();
+                
+                // Ignore rapid blur/focus (< 500ms)
+                if (now - lastFocusLoss < 500) {
+                    return;
+                }
+                
+                lastFocusLoss = now;
+                tabSwitchDetected = true;
+                
+                console.log('🚨 FOCUS LOSS - Window blur detected, Auto-submitting exam');
+                alert('🚨 EXAM AUTO-SUBMITTED!\n\nYou switched windows or minimized the exam.\nYour exam has been automatically submitted due to tab switching.');
+                
+                if (socket && socket.connected) {
+                    socket.emit('tab_switch_detected', {
+                        session_id: sessionId,
+                        timestamp: now,
+                        reason: 'tab switching occured',
+                        focus_loss_count: 1
+                    });
+                }
+            }
+        });
+
+        // Prevent tab switching with warning
+        window.addEventListener('beforeunload', function(e) {
+            if (isExamActive) {
+                e.preventDefault();
+                e.returnValue = 'Exam is in progress. Are you sure you want to leave?';
+                return e.returnValue;
+            }
+        });
+
+        function getBrowserName() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            if (userAgent.includes('chrome') && !userAgent.includes('edg') && !userAgent.includes('opr')) return 'chrome';
+            if (userAgent.includes('safari') && !userAgent.includes('chrome')) return 'safari';
+            if (userAgent.includes('firefox')) return 'firefox';
+            if (userAgent.includes('edg')) return 'edge';
+            if (userAgent.includes('opr')) return 'opera';
+            return 'unknown';
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            customConfirm("PRE-EXAM CHECKLIST\n\n1. Please CLOSE ALL OTHER TABS AND APPLICATIONS before proceeding.\n2. Do NOT switch tabs during the exam.\n3. Make sure you are in a quiet environment without TV or background conversations.", () => {
+                startExam();
+            });
+        });
+
+        async function startExam() {
+
+            const studentId = document.getElementById('studentId').value;
+            const examId = document.getElementById('examId').value;
+            const examName = document.getElementById('examName').value;
+
+            try {
+                console.log('📹 Starting exam...');
+                webcamStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 1280, height: 720 },
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                document.getElementById('webcamVideo').srcObject = webcamStream;
+
+                await initializeAudioCapture();
+
+                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: 'monitor' } });
+                
+                // ENFORCE ENTIRE SCREEN SHARING
+                // This is the only way a web app can ensure no hidden background apps are being used
+                const screenTrack = screenStream.getVideoTracks()[0];
+                const settings = screenTrack.getSettings();
+                
+                if (settings.displaySurface && settings.displaySurface !== 'monitor') {
+                    screenTrack.stop();
+                    if (webcamStream) {
+                        webcamStream.getTracks().forEach(t => t.stop());
+                    }
+                    alert('🚨 SECURITY CHECK FAILED\n\nYou must share your "Entire Screen" to proceed.\n\nSharing only a Window or Tab allows background applications to remain hidden, which is not permitted.\n\nPlease close all other applications, start the exam again, and select "Entire Screen".');
+                    return; // Abort exam start
+                }
+                
+                document.getElementById('screenVideo').srcObject = screenStream;
+
+                const response = await fetch(`${API_URL}/api/exam/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_id: studentId, exam_id: examId, exam_name: examName })
+                });
+
+                const data = await response.json();
+                sessionId = data.session_id;
+
+            // Switch view
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('examScreen').style.display = 'block';
+            displayProctorWindow();
+                document.getElementById('studentIdHeader').textContent = studentId;
+                document.getElementById('examTitleHeader').textContent = examName;
+
+                loadQuestions();
+                isExamActive = true;
+                startTimer();
+                initializeSocket();
+                startMonitoring();
+                
+                // FULLSCREEN MODE - Lock exam to this tab
+                try {
+                    await document.documentElement.requestFullscreen();
+                    console.log('Fullscreen mode activated');
+                } catch (err) {
+                    console.log('Fullscreen not supported:', err);
+                    // Fullscreen failed, rely on blur detection
+                }
+
+                console.log('Complete exam started with phone detection');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed: ' + error.message);
+            }
+        }
+
+        async function initializeAudioCapture() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                mediaStreamSource = audioContext.createMediaStreamSource(webcamStream);
+                audioAnalyzer = audioContext.createAnalyser();
+                audioAnalyzer.fftSize = 2048;
+                audioAnalyzer.smoothingTimeConstant = 0.2;
+                
+                mediaStreamSource.connect(audioAnalyzer);
+                audioDataArray = new Uint8Array(audioAnalyzer.frequencyBinCount);
+                
+                console.log('✅ Audio initialized');
+                addDebugLine('✅ Audio active');
+                document.getElementById('audioStatus').textContent = 'Listening...';
+                document.getElementById('audioIndicator').className = 'audio-indicator indicator-active';
+                
+                isRecordingAudio = true;
+                startAudioAnalysis();
+            } catch (error) {
+                console.error('❌ Audio error:', error);
+            }
+        }
+
+        function startAudioAnalysis() {
+            if (!isRecordingAudio || !audioAnalyzer) return;
+            
+            // VOICE ACTIVITY DETECTION (VAD) - Detects only human speech
+            audioAnalyzer.getByteFrequencyData(audioDataArray);
+            
+            // Voice detection configuration
+            const VOICE_ENERGY_THRESHOLD = 4000;  // Balanced - detects speech reliably
+            const SAMPLE_RATE = 48000;
+            const FFT_SIZE = 2048;
+            const HUMAN_VOICE_START_HZ = 85;
+            const HUMAN_VOICE_END_HZ = 8000;
+            
+            // Calculate frequency bins
+            const hzPerBin = SAMPLE_RATE / FFT_SIZE;
+            const voiceStartBin = Math.floor(HUMAN_VOICE_START_HZ / hzPerBin);
+            const voiceEndBin = Math.floor(HUMAN_VOICE_END_HZ / hzPerBin);
+            
+            // Calculate voice frequency energy and total energy
+            let voiceEnergy = 0;
+            let totalEnergy = 0;
+            
+            for (let i = 0; i < audioDataArray.length; i++) {
+                totalEnergy += audioDataArray[i];
+                
+                // Only sum voice frequency range (85-8000 Hz)
+                if (i >= voiceStartBin && i <= voiceEndBin) {
+                    voiceEnergy += audioDataArray[i];
+                }
+            }
+            
+            const avgLevel = totalEnergy / audioDataArray.length;
+            
+            // Check for voice pattern (STRICT - not just loud noise)
+            const voiceRatio = totalEnergy > 0 ? (voiceEnergy / totalEnergy) : 0;
+            const hasVoicePattern = voiceRatio > 0.5;  // Increased from 0.3 to 0.5 - require 50% voice energy
+            const isVoiceDetected = voiceEnergy > VOICE_ENERGY_THRESHOLD && hasVoicePattern && avgLevel > 40;
+            
+            // Update visualizer
+            const percentage = Math.min(100, (avgLevel / 80) * 100);
+            document.getElementById('audioLevelBar').style.width = percentage + '%';
+            document.getElementById('audioLevelText').textContent = Math.round(avgLevel);
+            
+            // Status based on VOICE detection, not just volume
+            let status = 'Silent';
+            if (isVoiceDetected) {
+                status = 'VOICE DETECTED';  // Human speech detected
+            } else if (avgLevel > 20) {
+                status = 'Background';  // Noise but not voice
+            } else if (avgLevel > 10) {
+                status = 'Quiet';
+            }
+            
+            document.getElementById('audioStatus').textContent = status;
+            
+            // Send if voice detected OR if background is loud (for environment tracking)
+            const now = Date.now();
+            const isLoudEnvironment = avgLevel > 25 && !isVoiceDetected;
+            
+            if ((isVoiceDetected || isLoudEnvironment) && now - lastAudioSend > 500) {
+                if (socket && socket.connected) {
+                    console.log(`🗣️ Audio Event: lvl=${Math.round(avgLevel)}, voice=${isVoiceDetected}`);
+                    
+                    socket.emit('audio_analysis', {
+                        session_id: sessionId,
+                        audio_level: Math.round(avgLevel),
+                        voice_energy: Math.round(voiceEnergy),
+                        is_speech: isVoiceDetected,  // Backend uses this to distinguish
+                        timestamp: now
+                    });
+                    
+                    lastAudioSend = now;
+                    if (isVoiceDetected) {
+                        addDebugLine(`📤 Voice: ${Math.round(voiceEnergy)} - 🗣️ SPEECH`);
+                    } else {
+                        addDebugLine(`📤 Env Noise: lvl ${Math.round(avgLevel)} - 🔊 ENV`);
+                    }
+                }
+            }
+            
+            requestAnimationFrame(startAudioAnalysis);
+        }
+
+        function addDebugLine(text) {
+            audioDebugLines.unshift(text);
+            if (audioDebugLines.length > 8) audioDebugLines.pop();
+            
+            document.getElementById('debugPanel').innerHTML = 
+                audioDebugLines.map(line => `<div class="debug-line">${line}</div>`).join('');
+        }
+
+        function loadQuestions() {
+            document.getElementById('examQuestions').innerHTML = examQuestions.map(q => `
+                <div class="question-card">
+                    <div class="question-number">Question ${q.number}</div>
+                    <div class="question-text">${q.text}</div>
+                    <textarea placeholder="Your answer..."></textarea>
+                </div>
+            `).join('');
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+                const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+                const s = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('timerDisplay').textContent = `${h}:${m}:${s}`;
+            }, 1000);
+        }
+
+        function initializeSocket() {
+            socket = io(API_URL);
+            socket.on('connect', () => {
+                console.log('✅ Connected');
+                addDebugLine('✅ Connected');
+            });
+            socket.on('monitoring_update', updateMonitoringUI);
+            socket.on('speech_update', updateSpeechUI);
+            
+            // AUTO-SUBMIT handler (THREE-STRIKE SYSTEM)
+            socket.on('auto_submit', (data) => {
+                console.log('🚨 AUTO-SUBMIT TRIGGERED:', data.reason);
+                clearInterval(timerInterval);
+                
+                showModal('EXAM AUTOMATICALLY SUBMITTED', `${data.reason || 'Three strikes reached'}\n\nYou will be redirected to results.`, [
+                    { text: 'View Results', primary: true, onClick: () => {
+                        closeModal();
+                        submitExam(true);
+                    }}
+                ]);
+            });
+        }
+
+        function startMonitoring() {
+            setInterval(() => {
+                if (isExamActive && webcamStream) {
+                    const video = document.getElementById('webcamVideo');
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    
+                    if (socket && socket.connected) {
+                        socket.emit('video_frame', {
+                            session_id: sessionId,
+                            frame: canvas.toDataURL('image/jpeg', 0.7)
+                        });
+                    }
+                }
+            }, 100);
+        }
+
+        function updateMonitoringUI(data) {
+            document.getElementById('overallScore').textContent = Math.round(data.overall_score || 100);
+            
+            const liveScore = Math.round(data.overall_score || 100);
+            const badge = document.getElementById('liveScoreBadge');
+            if (badge) {
+                if (liveScore >= 90) {
+                    badge.textContent = 'EXCELLENT';
+                    badge.style.color = '#10b981';
+                } else {
+                    badge.textContent = 'FAIR';
+                    badge.style.color = '#f59e0b';
+                }
+            }
+            document.getElementById('eyeGazeScore').textContent = Math.round(data.eye_gaze_score || 100);
+            document.getElementById('faceCount').textContent = data.face_count || 1;
+            document.getElementById('speechScore').textContent = Math.round(data.speech_score || 100);
+            document.getElementById('gadgetScore').textContent = Math.round(data.gadget_score || 100);
+
+            document.getElementById('eyeGazeProgress').style.width = (data.eye_gaze_score || 100) + '%';
+            document.getElementById('speechProgress').style.width = (data.speech_score || 100) + '%';
+            document.getElementById('gadgetProgress').style.width = (data.gadget_score || 100) + '%';
+
+            // Multiple faces alert
+            if (data.multiple_faces_detected) {
+                document.getElementById('multipleFacesAlert').className = 'alert-box alert-faces show';
+            } else {
+                document.getElementById('multipleFacesAlert').className = 'alert-box alert-faces';
+            }
+
+            // Phone detection alert
+            if (data.phone_detected) {
+                document.getElementById('phoneAlert').className = 'alert-box alert-phone show';
+                document.getElementById('phoneCount').textContent = data.phone_detection_count || 0;
+                console.log('📱 PHONE DETECTED!');
+            } else {
+                document.getElementById('phoneAlert').className = 'alert-box alert-phone';
+            }
+
+            // Lip movement alerts
+            if (data.lip_movement && data.lip_movement.detected) {
+                const level = data.lip_movement.warning_level;
+                
+                // Hide all lip alerts first
+                document.getElementById('lipWarning1').className = 'alert-box alert-lip-warning1';
+                document.getElementById('lipWarning2').className = 'alert-box alert-lip-warning2';
+                document.getElementById('lipPenalty').className = 'alert-box alert-lip-penalty';
+                
+                // Show appropriate alert
+                if (level === 1) {
+                    document.getElementById('lipWarning1').className = 'alert-box alert-lip-warning1 show';
+                    console.log('⚠️ LIP MOVEMENT - First Warning');
+                } else if (level === 2) {
+                    document.getElementById('lipWarning2').className = 'alert-box alert-lip-warning2 show';
+                    console.log('⚠️ LIP MOVEMENT - Final Warning');
+                } else if (level === 3) {
+                    document.getElementById('lipPenalty').className = 'alert-box alert-lip-penalty show';
+                    document.getElementById('lipPenaltyAmount').textContent = '2';
+                    document.getElementById('lipTotalDetections').textContent = data.lip_movement.total_detections || 0;
+                    document.getElementById('lipTotalPenalty').textContent = data.lip_movement.total_penalty || 0;
+                    console.log('🚨 LIP MOVEMENT PENALTY: -2 points');
+                }
+            }
+
+            // THREE-STRIKE SYSTEM: Display strike warnings
+            if (data.violation_strikes !== undefined) {
+                const strikes = data.violation_strikes;
+                
+                // Hide all strike warnings first
+                document.getElementById('strikeWarning1').style.display = 'none';
+                document.getElementById('strikeWarning2').style.display = 'none';
+                
+                // Show appropriate strike warning
+                if (strikes === 1) {
+                    document.getElementById('strikeWarning1').style.display = 'block';
+                    console.log('⚠️ STRIKE 1/3 - First Warning');
+                } else if (strikes === 2) {
+                    document.getElementById('strikeWarning2').style.display = 'block';
+                    console.log('🟠 STRIKE 2/3 - FINAL WARNING');
+                }
+                // Strike 3 is handled by auto_submit event
+            }
+        }
+
+        function toggleScoreView() {
+            const scoreContainer = document.getElementById('integrityScoreContainer');
+            const audioContainer = document.getElementById('audioMonitorSection');
+            const btn = document.getElementById('toggleScoreBtn');
+            
+            if (scoreContainer.style.display === 'none') {
+                scoreContainer.style.display = 'block';
+                audioContainer.style.display = 'block';
+                btn.innerHTML = '<span id="toggleIcon">🙈</span> Hide Integrity Scores';
+            } else {
+                scoreContainer.style.display = 'none';
+                audioContainer.style.display = 'none';
+                btn.innerHTML = '<span id="toggleIcon">👁️</span> Show Integrity Scores';
+            }
+        }
+
+        function updateSpeechUI(data) {
+            console.log('Speech update:', data);
+            addDebugLine(`Score: ${data.speech_score}, Events: ${data.speech_events}/${data.noise_events}`);
+            
+            document.getElementById('speechScore').textContent = Math.round(data.speech_score);
+            document.getElementById('speechProgress').style.width = data.speech_score + '%';
+            
+            // Environment Noise UI update
+            if (data.environment_noise) {
+                document.getElementById('envWarning').style.display = 'block';
+                setTimeout(() => { 
+                    document.getElementById('envWarning').style.display = 'none'; 
+                }, 4000);
+            }
+            
+            // Speech causes rapid score reduction but NO strikes/auto-submit
+        }
+
+        async function submitExam(isAutoSubmit = false) {
+            try {
+                const response = await fetch(`${API_URL}/api/exam/end`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        session_id: sessionId,
+                        auto_submitted: isAutoSubmit
+                    })
+                });
+
+                if (webcamStream) webcamStream.getTracks().forEach(t => t.stop());
+                if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+                if (audioContext) audioContext.close().catch(e => console.log('AudioContext close ignored', e));
+                
+                isExamActive = false;
+                clearInterval(timerInterval);
+
+                window.location.href = `dashboard.html?session=${sessionId}`;
+            } catch (error) {
+                showModal('Error', 'Failed to submit exam. Please check your connection.', [
+                    {text: 'Retry', primary: true, onClick: closeModal}
+                ]);
+            }
+        }
+
+        function endExam() {
+            customConfirm('Exit Exam without saving?', () => submitExam());
+        }
+
+        // Show proctoring window when exam starts
+        function displayProctorWindow() {
+            document.getElementById('proctorWindow').classList.add('active');
+        }
+
+        function toggleProctorFeeds() {
+            const feeds = document.getElementById('proctorFeeds');
+            const icon = document.getElementById('proctorToggleIcon');
+            if (feeds.style.display === 'none') {
+                feeds.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                feeds.style.display = 'none';
+                icon.textContent = '▲';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,12 +1,17 @@
 // ==========================================
 // DEPLOYMENT CONFIGURATION
 // ==========================================
-// When running locally, use this URL:
-// const API_URL = 'http://localhost:5000';
 
-// Before deploying your frontend to GitHub Pages, 
-// uncomment the line below and replace 'YOUR_WEBSERVICE_URL' 
-// with the URL of your Render backend (e.g. 'https://ptc-backend.onrender.com')
+// This dynamically configures the backend connection based on where you host the frontend.
+// For local development, it automatically connects via 'http://localhost:5000'
+// For production, it directs traffic securely to your Render web instance.
 
-const API_URL = 'http://localhost:5000';
-// const API_URL = 'YOUR_WEBSERVICE_URL';
+let API_URL;
+
+if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.protocol === "file:") {
+    API_URL = 'http://localhost:5000';
+} else {
+    // NOTE: When deploying to GitHub Pages, Netlify, or Vercel, replace the string below
+    // with the exact Web Service URL generated when you deploy the Docker container to Render.
+    API_URL = 'https://indiproctor-backend.onrender.com';
+}

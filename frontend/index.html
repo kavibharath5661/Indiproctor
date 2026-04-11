@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExamPortal - Professional Exam Platform</title>
+    <title>IndiProctor - Professional Exam Platform</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
@@ -604,7 +604,7 @@
 <body>
     <div id="loginScreen" class="login-wrapper">
         <div class="login-sidebar">
-            <div class="logo">Proctor<span>AI</span></div>
+            <div class="logo">Indi<span>Proctor</span></div>
             <p>Ensure academic integrity with state-of-the-art vision and audio analysis models built for professional examinations.</p>
         </div>
         <div class="login-container">
@@ -615,15 +615,15 @@
                 <form id="loginForm">
                     <div class="form-group">
                         <label>Student ID</label>
-                        <input type="text" id="studentId" value="21MID0009" required>
+                        <input type="text" id="studentId" placeholder="e.g. 21MID0009" required>
                     </div>
                     <div class="form-group">
                         <label>Exam Code</label>
-                        <input type="text" id="examId" value="CAPSTONE2024" required>
+                        <input type="text" id="examId" placeholder="6-Digit Exam Access Code" required>
                     </div>
                     <div class="form-group">
                         <label>Exam Name</label>
-                        <input type="text" id="examName" value="AI Proctorless System" required>
+                        <input type="text" id="examName" placeholder="e.g. CS101 Assessment" required>
                     </div>
                     <button type="submit" class="btn" style="margin-top: 10px;">Start Secure Session →</button>
                 </form>
@@ -877,13 +877,9 @@
             ]);
         }
 
-        const examQuestions = [
-            { number: 1, text: "Explain the architecture of your AI-based proctorless examination monitoring system." },
-            { number: 2, text: "What deep learning models did you use for eye gaze tracking and face detection?" },
-            { number: 3, text: "How does your NLP-based speech analysis detect unauthorized communication?" },
-            { number: 4, text: "Describe the integrity scoring algorithm. How are weights determined?" },
-            { number: 5, text: "What are the ethical and privacy considerations? How did you address them?" }
-        ];
+        let currentQuestionIndex = 0;
+        let examQuestions = [];
+        let timerDurationMinutes = 0;
 
         // TAB LOCK: Detect tab switching and auto-submit immediately
         document.addEventListener('visibilitychange', function() {
@@ -985,6 +981,23 @@
             const examName = document.getElementById('examName').value;
 
             try {
+                // FETCH EXAM CONFIG IF EXISTS
+                console.log('Fetching exam config...');
+                try {
+                    const examRes = await fetch(`${API_URL}/api/exams/${examId}`);
+                    if (examRes.ok) {
+                        const examData = await examRes.json();
+                        examQuestions = examData.questions || [];
+                        timerDurationMinutes = examData.duration_minutes || 0;
+                        document.getElementById('examName').value = examData.exam_name || examName;
+                    } else {
+                        throw new Error("Exam ID not found");
+                    }
+                } catch (e) {
+                    alert("Exam ID not found or could not load config.");
+                    return;
+                }
+
                 console.log('📹 Starting exam...');
                 webcamStream = await navigator.mediaDevices.getUserMedia({
                     video: { width: 1280, height: 720 },
@@ -1019,7 +1032,7 @@
                 const response = await fetch(`${API_URL}/api/exam/start`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ student_id: studentId, exam_id: examId, exam_name: examName })
+                    body: JSON.stringify({ student_id: studentId, exam_id: examId, exam_name: document.getElementById('examName').value })
                 });
 
                 const data = await response.json();
@@ -1030,7 +1043,7 @@
             document.getElementById('examScreen').style.display = 'block';
             displayProctorWindow();
                 document.getElementById('studentIdHeader').textContent = studentId;
-                document.getElementById('examTitleHeader').textContent = examName;
+                document.getElementById('examTitleHeader').textContent = document.getElementById('examName').value;
 
                 loadQuestions();
                 isExamActive = true;
@@ -1169,23 +1182,201 @@
         }
 
         function loadQuestions() {
-            document.getElementById('examQuestions').innerHTML = examQuestions.map(q => `
-                <div class="question-card">
-                    <div class="question-number">Question ${q.number}</div>
-                    <div class="question-text">${q.text}</div>
-                    <textarea placeholder="Your answer..."></textarea>
+            let html = '';
+            if (!examQuestions || examQuestions.length === 0) {
+                document.getElementById('examQuestions').innerHTML = '<div style="padding: 40px; text-align: center;">No questions loaded for this exam.</div>';
+                return;
+            }
+
+            examQuestions.forEach((q, index) => {
+                const isVisible = index === currentQuestionIndex ? 'block' : 'none';
+                
+                let inputHtml = '';
+                if (q.type === 'multiple_choice') {
+                    inputHtml = `<div class="options-group" style="margin-top: 15px;">`;
+                    if (q.options && q.options.length > 0) {
+                        q.options.forEach((opt, optIdx) => {
+                            inputHtml += `
+                                <label style="display: block; margin-bottom: 15px; cursor: pointer; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: #f8fafc; transition: all 0.2s;">
+                                    <input type="radio" name="answer-${index}" value="${optIdx}">
+                                    <span style="margin-left: 8px; font-size: 15px;">${opt}</span>
+                                </label>
+                            `;
+                        });
+                    }
+                    inputHtml += `</div>`;
+                } else if (q.type === 'programming') {
+                    let langOptions = '';
+                    const langs = q.allowedLanguages && q.allowedLanguages.length > 0 ? q.allowedLanguages : ['python', 'javascript', 'cpp'];
+                    langs.forEach(l => {
+                        let label = l === 'cpp' ? 'C++' : (l === 'javascript' ? 'JavaScript' : 'Python');
+                        langOptions += `<option value="${l}">${label}</option>`;
+                    });
+                    
+                    inputHtml = `
+                        <div class="programming-env" style="margin-top: 15px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #1e1e1e;">
+                            <div class="compiler-toolbar" style="background: #2d2d2d; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444;">
+                                <select id="prog-lang-${index}" style="background: #333; color: white; border: 1px solid #555; padding: 5px 10px; border-radius: 4px; outline: none; font-size: 13px;">
+                                    ${langOptions}
+                                </select>
+                                <button type="button" class="btn btn-primary" style="padding: 6px 12px; font-size: 13px; background: #0ea5e9; color: white; border: none; border-radius: 5px; cursor: pointer;" onclick="runCode(${index})">▶ Run Code</button>
+                            </div>
+                            <textarea id="answer-${index}" style="width: 100%; height: 300px; box-sizing: border-box; background: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 14px; padding: 15px; border: none; outline: none; resize: vertical;" spellcheck="false" placeholder="Write your code here..."></textarea>
+                            <div id="prog-output-${index}" style="border-top: 1px solid #444; background: #000; color: #0f0; font-family: monospace; padding: 10px; min-height: 80px; max-height: 200px; overflow-y: auto; font-size: 13px; display: none; box-sizing: border-box;"></div>
+                        </div>
+                    `;
+                } else {
+                    inputHtml = `<textarea placeholder="Your answer..." id="answer-${index}"></textarea>`;
+                }
+
+                let pointsHtml = q.points ? `<span style="float: right; color: var(--text-muted); font-size: 14px; background: #e2e8f0; padding: 4px 8px; border-radius: 6px;">${q.points} Points</span>` : '';
+
+                html += `
+                    <div class="question-card" id="question-card-${index}" style="display: ${isVisible};">
+                        <div class="question-number">Question ${index + 1} of ${examQuestions.length} ${pointsHtml}</div>
+                        <div class="question-text">${q.text}</div>
+                        ${inputHtml}
+                    </div>
+                `;
+            });
+            
+            html += `
+                <div class="navigation-buttons" style="display: flex; gap: 12px; justify-content: space-between; margin-top: 20px;">
+                    <button type="button" id="btn-back" class="btn" style="background: var(--text-muted); color: white; display: none; width: auto; padding: 10px 24px;" onclick="navigateQuestion(-1)">← Back</button>
+                    <div style="flex: 1"></div>
+                    <button type="button" id="btn-next" class="btn" style="background: var(--primary); color: white; display: none; width: auto; padding: 10px 24px;" onclick="navigateQuestion(1)">Next →</button>
                 </div>
-            `).join('');
+            `;
+            
+            document.getElementById('examQuestions').innerHTML = html;
+            updateNavigationButtons();
+        }
+
+        function navigateQuestion(direction) {
+            const oldIndex = currentQuestionIndex;
+            currentQuestionIndex += direction;
+            
+            if (currentQuestionIndex < 0) currentQuestionIndex = 0;
+            if (currentQuestionIndex >= examQuestions.length) currentQuestionIndex = examQuestions.length - 1;
+            
+            document.getElementById(`question-card-${oldIndex}`).style.display = 'none';
+            document.getElementById(`question-card-${currentQuestionIndex}`).style.display = 'block';
+            
+            updateNavigationButtons();
+        }
+
+        async function runCode(index) {
+            const lang = document.getElementById(`prog-lang-${index}`).value;
+            const code = document.getElementById(`answer-${index}`).value;
+            const outputDiv = document.getElementById(`prog-output-${index}`);
+            const q = examQuestions[index];
+            const testCases = q.testCases || [];
+            
+            if (!code.trim()) {
+                alert("Please write some code before running.");
+                return;
+            }
+            
+            outputDiv.style.display = 'block';
+            outputDiv.innerHTML = '<span style="color: #888;">Compiling and Executing...</span>';
+            
+            try {
+                const res = await fetch(`${API_URL}/api/compile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ language: lang, code: code, test_cases: testCases })
+                });
+                
+                const data = await res.json();
+                if (data.status === 'success') {
+                    outputDiv.innerHTML = '';
+                    
+                    if (data.test_results) {
+                        let tHtml = `<div style="margin-bottom: 8px; font-weight: bold; font-size: 15px; color: ${data.all_passed ? '#4ade80' : '#f87171'}">Test Suite: ${data.all_passed ? 'All Passed ✓' : 'Failed ✕'}</div>`;
+                        
+                        data.test_results.forEach(tr => {
+                            let statusColor = tr.passed ? '#4ade80' : '#f87171';
+                            let statusIcon = tr.passed ? '✓ Passed' : '✕ Failed';
+                            
+                            tHtml += `
+                                <div style="margin-bottom: 12px; background: #111; padding: 10px; border-radius: 6px; border-left: 3px solid ${statusColor};">
+                                    <div style="color: ${statusColor}; font-weight: bold; margin-bottom: 6px;">Test Case ${tr.id} : ${statusIcon}</div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                        <div>
+                                            <div style="color: #888; font-size: 11px;">Input</div>
+                                            <div style="color: #ccc; background: #222; padding: 6px; border-radius: 4px; white-space: pre-wrap; font-size: 12px; font-family: monospace;">${tr.input || '(empty)'}</div>
+                                        </div>
+                                        <div>
+                                            <div style="color: #888; font-size: 11px;">Expected</div>
+                                            <div style="color: #ccc; background: #222; padding: 6px; border-radius: 4px; white-space: pre-wrap; font-size: 12px; font-family: monospace;">${tr.expected || '(empty)'}</div>
+                                        </div>
+                                    </div>
+                                    <div style="margin-top: 8px;">
+                                        <div style="color: #888; font-size: 11px;">Actual Output/Error</div>
+                                        <div style="color: ${tr.passed ? '#ccc' : '#f87171'}; background: #222; padding: 6px; border-radius: 4px; white-space: pre-wrap; font-size: 12px; font-family: monospace;">${tr.error ? String(tr.error) : (tr.actual || '(empty)')}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        outputDiv.innerHTML = tHtml;
+                    } else {
+                        if (data.error) {
+                            outputDiv.innerHTML += `<div style="color: #f87171;">${data.error.replace(/\\n/g, '<br>')}</div>`;
+                        }
+                        if (data.output) {
+                            outputDiv.innerHTML += `<div style="color: #4ade80;">${data.output.replace(/\\n/g, '<br>')}</div>`;
+                        }
+                        if (!data.error && !data.output) {
+                            outputDiv.innerHTML = '<span style="color: #888;">(No output)</span>';
+                        }
+                    }
+                } else {
+                    outputDiv.innerHTML = `<span style="color: #f87171;">Error: ${data.error}</span>`;
+                }
+            } catch (err) {
+                outputDiv.innerHTML = `<span style="color: #f87171;">Network Error: ${err.message}</span>`;
+            }
+        }
+
+        function updateNavigationButtons() {
+            const btnBack = document.getElementById('btn-back');
+            const btnNext = document.getElementById('btn-next');
+            
+            if (currentQuestionIndex === 0) {
+                btnBack.style.display = 'none';
+            } else {
+                btnBack.style.display = 'block';
+            }
+            
+            if (currentQuestionIndex === examQuestions.length - 1) {
+                btnNext.style.display = 'none';
+            } else {
+                btnNext.style.display = 'block';
+            }
         }
 
         function startTimer() {
             startTime = Date.now();
             timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
-                const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
-                const s = (elapsed % 60).toString().padStart(2, '0');
-                document.getElementById('timerDisplay').textContent = `${h}:${m}:${s}`;
+                if (timerDurationMinutes > 0) {
+                    const remaining = Math.max(0, (timerDurationMinutes * 60) - elapsed);
+                    const h = Math.floor(remaining / 3600).toString().padStart(2, '0');
+                    const m = Math.floor((remaining % 3600) / 60).toString().padStart(2, '0');
+                    const s = (remaining % 60).toString().padStart(2, '0');
+                    document.getElementById('timerDisplay').textContent = `${h}:${m}:${s}`;
+                    
+                    if (remaining === 0) {
+                        clearInterval(timerInterval);
+                        alert("Time's up! Your exam will be automatically submitted.");
+                        submitExam(true);
+                    }
+                } else {
+                    const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+                    const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+                    const s = (elapsed % 60).toString().padStart(2, '0');
+                    document.getElementById('timerDisplay').textContent = `${h}:${m}:${s}`;
+                }
             }, 1000);
         }
 

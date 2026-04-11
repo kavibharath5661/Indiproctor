@@ -1095,6 +1095,160 @@ def handle_tab_switch(data):
         print(f"Tab switch error: {e}")
 
 
+@app.route('/api/exams/create', methods=['POST', 'OPTIONS'])
+def create_exam():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'})
+    try:
+        data = request.get_json()
+        exam_id = data.get('exam_id')
+        if not exam_id:
+            import uuid
+            exam_id = str(uuid.uuid4())[:8].upper()
+            data['exam_id'] = exam_id
+        
+        os.makedirs('storage/exams', exist_ok=True)
+        exam_path = f'storage/exams/{exam_id}.json'
+        with open(exam_path, 'w') as f:
+            json.dump(data, f, indent=2)
+            
+        print(f"Exam {exam_id} created successfully.")
+        return jsonify({
+            'status': 'success',
+            'exam_id': exam_id,
+            'message': 'Exam created successfully'
+        })
+    except Exception as e:
+        print(f"Error creating exam: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/exams/<exam_id>', methods=['GET'])
+def get_exam(exam_id):
+    try:
+        exam_path = f'storage/exams/{exam_id}.json'
+        if os.path.exists(exam_path):
+            with open(exam_path, 'r') as f:
+                exam_data = json.load(f)
+            return jsonify(exam_data)
+        else:
+            # Fallback for dynamic exam fetch if not found
+            return jsonify({'error': 'Exam not found'}), 404
+    except Exception as e:
+        print(f"Error loading exam: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/compile', methods=['POST', 'OPTIONS'])
+def compile_code():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'})
+    try:
+        data = request.get_json()
+        language = data.get('language')
+        code = data.get('code')
+        test_cases = data.get('test_cases', [])
+
+        if not language or not code:
+            return jsonify({'error': 'Language and code are required'}), 400
+
+        import subprocess
+        import tempfile
+        timeout = 5
+        
+        results = []
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_path = ""
+            run_cmd = []
+            
+            if language == 'python':
+                file_path = os.path.join(temp_dir, 'main.py')
+                with open(file_path, 'w') as f:
+                    f.write(code)
+                run_cmd = ['python3', file_path]
+                
+            elif language == 'javascript':
+                file_path = os.path.join(temp_dir, 'main.js')
+                with open(file_path, 'w') as f:
+                    f.write(code)
+                run_cmd = ['node', file_path]
+                
+            elif language == 'cpp':
+                file_path = os.path.join(temp_dir, 'main.cpp')
+                out_path = os.path.join(temp_dir, 'a.out')
+                with open(file_path, 'w') as f:
+                    f.write(code)
+                compile_result = subprocess.run(['g++', file_path, '-o', out_path], capture_output=True, text=True, timeout=10)
+                if compile_result.returncode != 0:
+                    return jsonify({
+                        'status': 'error',
+                        'error': "Compilation Error:\n" + compile_result.stderr
+                    })
+                run_cmd = [out_path]
+            else:
+                return jsonify({'error': 'Unsupported language: ' + language}), 400
+
+            # Execution
+            if not test_cases:
+                # Standard single run without specific input
+                try:
+                    result = subprocess.run(run_cmd, capture_output=True, text=True, timeout=timeout)
+                    return jsonify({
+                        'status': 'success',
+                        'output': result.stdout,
+                        'error': result.stderr
+                    })
+                except subprocess.TimeoutExpired:
+                    return jsonify({
+                        'status': 'error',
+                        'error': "Execution timed out (exceeded 5 seconds)."
+                    })
+            else:
+                # Run against test cases
+                all_passed = True
+                for idx, tc in enumerate(test_cases):
+                    tc_input = tc.get('input', '')
+                    tc_expected = tc.get('expected', '')
+                    
+                    try:
+                        result = subprocess.run(run_cmd, input=tc_input, capture_output=True, text=True, timeout=timeout)
+                        actual_out = result.stdout.strip()
+                        expected_out = tc_expected.strip()
+                        
+                        passed = (actual_out == expected_out) and (result.returncode == 0)
+                        if not passed:
+                            all_passed = False
+                            
+                        results.append({
+                            'id': idx + 1,
+                            'input': tc_input,
+                            'expected': tc_expected,
+                            'actual': result.stdout,
+                            'passed': passed,
+                            'error': result.stderr if result.returncode != 0 else ""
+                        })
+                    except subprocess.TimeoutExpired:
+                        all_passed = False
+                        results.append({
+                            'id': idx + 1,
+                            'input': tc_input,
+                            'expected': tc_expected,
+                            'actual': "",
+                            'passed': False,
+                            'error': "Execution timed out (exceeded 5 seconds)."
+                        })
+                
+                return jsonify({
+                    'status': 'success',
+                    'test_results': results,
+                    'all_passed': all_passed
+                })
+    except Exception as e:
+        print(f"Compilation API error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     print("="*70)
     print("COMPLETE PROCTORLESS EXAM SYSTEM v8.0")

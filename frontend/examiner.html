@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndiProctor - Examiner Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
+    <style>
+        :root {
+            --primary: #3b82f6; /* Blue 500 */
+            --primary-hover: #2563eb; /* Blue 600 */
+            --primary-light: rgba(59, 130, 246, 0.15);
+            --bg-body: #09090b; /* Zinc 950 */
+            --surface: #18181b; /* Zinc 900 */
+            --surface-hover: #27272a; /* Zinc 800 */
+            --text-main: #fafafa;
+            --text-muted: #a1a1aa;
+            --border: #27272a;
+            --border-hover: #3f3f46;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+            --ring: 0 0 0 2px rgba(59, 130, 246, 0.4);
+            --danger: #ef4444;
+            --danger-light: rgba(239, 68, 68, 0.15);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-body);
+            background-image: 
+                radial-gradient(ellipse at top, rgba(59, 130, 246, 0.05), transparent 50%),
+                radial-gradient(ellipse at bottom, rgba(168, 85, 247, 0.03), transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(9, 9, 11, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #fff;}
+        .logo span { color: var(--primary); }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+        
+        .btn-primary:active { transform: translateY(0); }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-main);
+            border-color: var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover {
+            border-color: #52525b;
+            background: var(--surface-hover);
+        }
+
+        .btn-danger-ghost {
+            background: transparent;
+            color: var(--text-muted);
+        }
+        
+        .btn-danger-ghost:hover {
+            color: var(--danger);
+            background: var(--danger-light);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 60px auto;
+            padding: 0 24px;
+        }
+
+        .page-header {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .page-title {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .page-description {
+            font-size: 16px;
+            color: var(--text-muted);
+            max-width: 500px;
+            margin: 0 auto;
+            font-weight: 400;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .form-group { margin-bottom: 20px; }
+        
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: var(--text-main);
+            transition: all 0.2s ease;
+        }
+
+        .form-control::placeholder { color: #52525b; }
+
+        .form-control:focus {
+            outline: none;
+            background: #111;
+            border-color: var(--primary);
+            box-shadow: var(--ring);
+        }
+
+        textarea.form-control { resize: vertical; min-height: 80px; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        .question-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .question-item:hover {
+            border-color: #52525b;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .question-badge {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .options-container {
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .option-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .option-row:last-child { margin-bottom: 10px; }
+
+        .custom-radio {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* Modal Submissions */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            width: 100%;
+            max-width: 440px;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .exam-code-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 42px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 4px;
+            background: #111;
+            padding: 24px 20px;
+            border-radius: 12px;
+            margin: 24px 0;
+            border: 1px dashed var(--border-hover);
+        }
+
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">Indi<span>Proctor</span> Examiner</div>
+        <a href="index.html" class="btn btn-secondary">Student Portal →</a>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Deploy Assessment</h1>
+            <p class="page-description">Configure constraints, add intelligent questions, and generate a secure session code instantly.</p>
+        </div>
+
+        <form id="quizForm">
+            <!-- Global Settings -->
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">Global Settings</h2>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Assessment Name</label>
+                    <input type="text" id="quizName" class="form-control" required placeholder="e.g. CS101 Midterm Examination">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description / Instructions</label>
+                    <textarea id="quizDescription" class="form-control" placeholder="Provide instructions for the candidates..."></textarea>
+                </div>
+                
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <select id="quizCategory" class="form-control">
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="Engineering">Engineering</option>
+                            <option value="General">General</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Exam Set (Optional)</label>
+                        <input type="text" id="quizSet" class="form-control" placeholder="e.g. Set Alpha">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Access Policy</label>
+                        <select id="accessType" class="form-control">
+                            <option value="Public">Public (Anyone with Code)</option>
+                            <option value="Private">Restricted Enrollment</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Strict Time Limit (Minutes)</label>
+                        <input type="number" id="globalDuration" class="form-control" value="60" min="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions -->
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">Test Content</h2>
+                    <button type="button" class="btn btn-secondary" onclick="addQuestion()" style="font-size: 13px; padding: 8px 16px;">+ Add Question</button>
+                </div>
+                
+                <div id="questionsContainer">
+                    <!-- Dynamic Questions Injected Here -->
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 80px;">
+                <button type="submit" class="btn btn-primary" style="padding: 16px 36px; font-size: 16px; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4);">Deploy Assessment Configuration</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-content">
+            <div class="success-icon">✓</div>
+            <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Assessment Live!</h2>
+            <p style="color: var(--text-muted); font-size: 15px;">Your test environment has been provisioned successfully. Share this code with your candidates:</p>
+            
+            <div class="exam-code-display" id="generatedCode">XXXXXX</div>
+            
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 32px; background: #f8fafc; padding: 12px; border-radius: 8px;">
+                Candidates can join via the <strong>Student Portal</strong> using their Student ID and this Exam Code.
+            </p>
+            
+            <button class="btn btn-primary" style="width: 100%; padding: 14px;" onclick="closeModal()">Done</button>
+        </div>
+    </div>
+
+    <script>
+        let questionCount = 0;
+
+        function addQuestion() {
+            questionCount++;
+            const qId = questionCount;
+            
+            const html = `
+                <div class="question-item" id="q-container-${qId}">
+                    <div class="question-header">
+                        <div class="question-badge">Question ${qId}</div>
+                        <button type="button" class="btn btn-danger-ghost" style="padding: 4px 8px; font-size: 12px;" onclick="removeQuestion(${qId})">✕ Remove</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <textarea class="form-control q-text" rows="2" placeholder="Enter your question prompt here..." required></textarea>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Response Type</label>
+                            <select class="form-control q-type" onchange="toggleOptionType(this, ${qId})">
+                                <option value="text">Long Form Essay</option>
+                                <option value="multiple_choice">Multiple Choice</option>
+                                <option value="programming">Programming Task</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Assigned Points</label>
+                            <input type="number" class="form-control q-points" value="10" min="1">
+                        </div>
+                    </div>
+                    
+                    <div class="options-container" id="opts-${qId}" style="display: none;">
+                        <label class="form-label" style="font-size: 12px;">Define Alternatives (Check correct answer)</label>
+                        <div id="opts-list-${qId}">
+                            <div class="option-row">
+                                <input type="radio" class="custom-radio" name="correct-${qId}" value="0" checked>
+                                <input type="text" class="form-control opt-text" placeholder="First option">
+                            </div>
+                            <div class="option-row">
+                                <input type="radio" class="custom-radio" name="correct-${qId}" value="1">
+                                <input type="text" class="form-control opt-text" placeholder="Second option">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px; margin-top: 8px;" onclick="addOption(${qId})">+ Add Option</button>
+                    </div>
+                    
+                    <div class="programming-options" id="prog-${qId}" style="display: none; background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid var(--border); margin-top: 16px;">
+                        <label class="form-label" style="font-size: 12px; margin-bottom: 8px;">Allowed Languages</label>
+                        <div style="display: flex; gap: 16px;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 14px;"><input type="checkbox" class="lang-cb" value="python" checked> Python</label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 14px;"><input type="checkbox" class="lang-cb" value="javascript" checked> JavaScript</label>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 14px;"><input type="checkbox" class="lang-cb" value="cpp" checked> C++</label>
+                        </div>
+                        
+                        <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 8px;">Automated Test Cases (Stdin / Stdout)</label>
+                            <div id="test-cases-list-${qId}">
+                                <div class="test-case-row" style="background: white; border: 1px dashed var(--border-hover); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                                    <div class="grid-2">
+                                        <div>
+                                            <label style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px; display: block;">Standard Input</label>
+                                            <textarea class="form-control tc-input" rows="2" placeholder="e.g. 5\n10"></textarea>
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px; display: block;">Expected Output</label>
+                                            <textarea class="form-control tc-expected" rows="2" placeholder="e.g. 15"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary" style="font-size: 12px; padding: 6px 14px;" onclick="addTestCase(${qId})">+ Add Test Case</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('questionsContainer').insertAdjacentHTML('beforeend', html);
+        }
+
+        function removeQuestion(id) {
+            document.getElementById(`q-container-${id}`).remove();
+        }
+
+        function toggleOptionType(select, id) {
+            const container = document.getElementById(`opts-${id}`);
+            const progContainer = document.getElementById(`prog-${id}`);
+            const inputs = container.querySelectorAll('.opt-text');
+            if (select.value === 'multiple_choice') {
+                container.style.display = 'block';
+                if(progContainer) progContainer.style.display = 'none';
+                inputs.forEach(inp => inp.required = true);
+            } else if (select.value === 'programming') {
+                container.style.display = 'none';
+                if(progContainer) progContainer.style.display = 'block';
+                inputs.forEach(inp => inp.required = false);
+            } else {
+                container.style.display = 'none';
+                if(progContainer) progContainer.style.display = 'none';
+                inputs.forEach(inp => inp.required = false);
+            }
+        }
+
+        function addOption(qId) {
+            const list = document.getElementById(`opts-list-${qId}`);
+            const index = list.children.length;
+            const html = `
+                <div class="option-row" style="animation: fadeIn 0.3s ease;">
+                    <input type="radio" class="custom-radio" name="correct-${qId}" value="${index}">
+                    <input type="text" class="form-control opt-text" placeholder="Additional option" required>
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', html);
+        }
+
+        function addTestCase(qId) {
+            const list = document.getElementById(`test-cases-list-${qId}`);
+            const html = `
+                <div class="test-case-row" style="background: white; border: 1px dashed var(--border-hover); padding: 12px; border-radius: 8px; margin-bottom: 12px; animation: fadeIn 0.3s ease;">
+                    <button type="button" style="float: right; color: #ef4444; background: none; border: none; cursor: pointer; font-size: 11px; font-weight: 600; padding: 0 4px;" onclick="this.parentElement.remove()">✕ Remove</button>
+                    <div class="grid-2" style="clear: both; margin-top: 4px;">
+                        <div>
+                            <label style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px; display: block;">Standard Input</label>
+                            <textarea class="form-control tc-input" rows="2"></textarea>
+                        </div>
+                        <div>
+                            <label style="font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px; display: block;">Expected Output</label>
+                            <textarea class="form-control tc-expected" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+            `;
+            list.insertAdjacentHTML('beforeend', html);
+        }
+
+        // Initialize with one question
+        addQuestion();
+
+        document.getElementById('quizForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Deploying...';
+            submitBtn.disabled = true;
+
+            const questions = [];
+            document.querySelectorAll('.question-item').forEach((container, idx) => {
+                const text = container.querySelector('.q-text').value;
+                const type = container.querySelector('.q-type').value;
+                const points = parseInt(container.querySelector('.q-points').value);
+                
+                const qObj = { number: idx + 1, text, type, points };
+
+                if (type === 'multiple_choice') {
+                    const opts = [];
+                    let correctIndex = -1;
+                    container.querySelectorAll('.option-row').forEach((row, i) => {
+                        opts.push(row.querySelector('.opt-text').value);
+                        if (row.querySelector('input[type="radio"]').checked) {
+                            correctIndex = i;
+                        }
+                    });
+                    qObj.options = opts;
+                    qObj.correctOption = correctIndex;
+                } else if (type === 'programming') {
+                    const langs = [];
+                    container.querySelectorAll('.lang-cb:checked').forEach(cb => langs.push(cb.value));
+                    qObj.allowedLanguages = langs;
+                    
+                    const tcs = [];
+                    container.querySelectorAll('.test-case-row').forEach(row => {
+                        const i = row.querySelector('.tc-input').value;
+                        const expected = row.querySelector('.tc-expected').value;
+                        tcs.push({ input: i, expected: expected });
+                    });
+                    qObj.testCases = tcs;
+                }
+                questions.push(qObj);
+            });
+
+            const payload = {
+                exam_name: document.getElementById('quizName').value,
+                description: document.getElementById('quizDescription').value,
+                category: document.getElementById('quizCategory').value,
+                quiz_set: document.getElementById('quizSet').value,
+                access_type: document.getElementById('accessType').value,
+                duration_minutes: parseInt(document.getElementById('globalDuration').value),
+                questions: questions
+            };
+
+            try {
+                const res = await fetch(`${API_URL}/api/exams/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    document.getElementById('generatedCode').textContent = data.exam_id;
+                    document.getElementById('successModal').classList.add('active');
+                } else {
+                    alert("Verification Failed: " + data.error);
+                }
+            } catch (err) {
+                alert("Network Gateway Error: " + err.message);
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        function closeModal() {
+            document.getElementById('successModal').classList.remove('active');
+            document.getElementById('quizForm').reset();
+            document.getElementById('questionsContainer').innerHTML = '';
+            questionCount = 0;
+            addQuestion();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

@@ -275,17 +275,17 @@ class EyeGazeTracker:
         score = 100.0
         
         # Penalty for looking away
-        looking_away_penalty = stats.get('looking_away_percentage', 0) * 0.3
+        looking_away_penalty = stats.get('looking_away_percentage', 0) * 1.5
         score -= looking_away_penalty
         
         # Heavy penalty for no face
-        no_face_penalty = stats.get('no_face_percentage', 0) * 0.8
+        no_face_penalty = stats.get('no_face_percentage', 0) * 1.5
         score -= no_face_penalty
         
         # Penalty for sustained looking away
         max_consecutive = stats.get('max_consecutive_looking_away_frames', 0)
-        if max_consecutive > 45:
-            score -= min((max_consecutive - 45) * 0.05, 10)
+        if max_consecutive > 30:
+            score -= min((max_consecutive - 30) * 0.2, 30)
         
         return round(max(0, min(100, score)), 2)
     

@@ -37,14 +37,14 @@ class SpeechAnalyzer:
         #  OPTIMIZED SCORING with environment sound detection
         self.base_score = 100.0
         self.score_penalty = 0.0
-        self.SPEECH_PENALTY_PER_BURST = 5.0
-        self.NOISE_PENALTY_PER_EVENT = 0.2
-        self.ENV_SOUND_PENALTY_PER_EVENT = 3.0  #  NEW: TV/music penalty
+        self.SPEECH_PENALTY_PER_BURST = 10.0
+        self.NOISE_PENALTY_PER_EVENT = 0.5
+        self.ENV_SOUND_PENALTY_PER_EVENT = 5.0  #  NEW: TV/music penalty
         
         #  LOWER THRESHOLDS to detect environment sounds
-        self.MIN_VOICE_ENERGY = 2000  # Reduced from 3000 (more sensitive)
-        self.MIN_AUDIO_LEVEL = 20     # Reduced from 25 (catches TV/music)
-        self.ENV_SOUND_THRESHOLD = 30  #  NEW: Continuous sound threshold
+        self.MIN_VOICE_ENERGY = 20  # Reduced to be extremely highly sensitive
+        self.MIN_AUDIO_LEVEL = 2    # Reduced to be extremely highly sensitive
+        self.ENV_SOUND_THRESHOLD = 5  # Continuous sound threshold
 
         self.start_time = time.time()
         self.suspicious_keywords = suspicious_keywords or []

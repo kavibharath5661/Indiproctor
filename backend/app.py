@@ -905,7 +905,13 @@ def handle_video_frame(data):
             return
         
         # PHONE/GADGET DETECTION (NEW!)
-        gadget_result = session.detect_gadgets(frame)
+        # Check gadgets only every 10 frames to prevent heavy CPU lag from YOLO
+        if session.frame_count % 10 == 0:
+            gadget_result = session.detect_gadgets(frame)
+            session.last_gadget_result = gadget_result
+        else:
+            gadget_result = getattr(session, 'last_gadget_result', None)
+            
         gadget_score = session.calculate_gadget_score()
 
         # Check YOLO person count to supplement MediaPipe face count

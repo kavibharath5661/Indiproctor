@@ -314,6 +314,26 @@
     </style>
 </head>
 <body>
+    <div id="adminAuthOverlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(9,9,11,0.95); backdrop-filter: blur(20px); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center;">
+        <h2 style="color: #fff; font-size: 24px; margin-bottom: 12px; font-weight: 700;">Administrator Gateway</h2>
+        <p style="color: #a1a1aa; font-size: 14px; margin-bottom: 24px;">Please enter your administrative core key to deploy assessments.</p>
+        <div style="display: flex; gap: 10px;">
+            <input type="password" id="adminPasswordInput" placeholder="Enter Access Key..." style="padding: 12px 16px; background: #18181b; border: 1px solid #27272a; border-radius: 8px; color: #fff; outline: none; width: 260px; font-size: 14px;" onkeydown="if(event.key === 'Enter') verifyAdmin()">
+            <button onclick="verifyAdmin()" style="background: #3b82f6; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">Authenticate</button>
+        </div>
+        <div id="adminAuthError" style="color: #ef4444; font-size: 13px; margin-top: 16px; display: none;">Invalid authorization key. Access suspended.</div>
+    </div>
+    <script>
+        function verifyAdmin() {
+            if (document.getElementById('adminPasswordInput').value === 'indiadmin') {
+                document.getElementById('adminAuthOverlay').style.display = 'none';
+            } else {
+                document.getElementById('adminAuthError').style.display = 'block';
+                setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+            }
+        }
+    </script>
+
     <nav class="navbar">
         <div class="logo">Indi<span>Proctor</span> Examiner</div>
         <a href="index.html" class="btn btn-secondary">Student Portal →</a>

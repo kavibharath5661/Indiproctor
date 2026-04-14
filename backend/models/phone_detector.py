@@ -31,9 +31,9 @@ class PhoneDetector:
         }
         
         # PRODUCTION SETTINGS (balanced)
-        self.confidence_threshold = 0.15  # Extremely sensitive to catch obscure phone angles
+        self.confidence_threshold = 0.55  # Increased to prevent false positives
         self.detection_cooldown = 3.0    # 3 seconds between violations
-        self.min_detections = 1          # Immediate capture
+        self.min_detections = 3          # Require multiple consecutive frames
         
         # Tracking
         self.last_detections = {}

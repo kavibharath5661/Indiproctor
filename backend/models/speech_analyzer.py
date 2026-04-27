@@ -43,8 +43,8 @@ class SpeechAnalyzer:
         
         #  LOWER THRESHOLDS to detect environment sounds
         self.MIN_VOICE_ENERGY = 20  # Reduced to be extremely highly sensitive
-        self.MIN_AUDIO_LEVEL = 2    # Reduced to be extremely highly sensitive
-        self.ENV_SOUND_THRESHOLD = 5  # Continuous sound threshold
+        self.MIN_AUDIO_LEVEL = 10    # Reduced to be extremely highly sensitive
+        self.ENV_SOUND_THRESHOLD = 35  # Continuous sound threshold
 
         self.start_time = time.time()
         self.suspicious_keywords = suspicious_keywords or []

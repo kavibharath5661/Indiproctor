@@ -1,12 +1,21 @@
 services:
+  # Backend Web Service (Docker)
   - type: web
-    name: proctorless-exam-backend
-    env: python
+    name: indiproctor-backend
+    env: docker
+    region: ohio
+    plan: free # Note: If OOM crashes occur during models loading, upgrade to starter ($7/mo)
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -k eventlet -w 1 -b 0.0.0.0:$PORT app:app
-    plan: free # Note: The free plan only has 512MB RAM, which might not be enough for heavy ML models. Upgrade if it crashes.
-    healthCheckPath: /health
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.12
+    dockerCommand: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT app:app
+    healthCheckPath: /
+    autoDeploy: false
+
+  # Frontend Static Site
+  - type: web
+    name: indiproctor-frontend
+    env: static
+    region: ohio
+    rootDir: frontend
+    buildCommand: "" # No build required for static HTML/JS
+    publishPath: . # Publish the root of the frontend folder
+    autoDeploy: false

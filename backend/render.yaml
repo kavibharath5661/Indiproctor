@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: indiproctor-backend
-    env: docker
-    region: ohio
-    plan: starter
-    dockerCommand: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT app:app
-    healthCheckPath: /
-    autoDeploy: false

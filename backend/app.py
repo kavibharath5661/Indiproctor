@@ -7,7 +7,7 @@ COMPLETE VERSION - ALL FEATURES WORKING!
  ENCRYPTED STORAGE (NEW!)
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 import cv2
@@ -73,6 +73,8 @@ if ENCRYPTION_AVAILABLE:
 else:
     secure_storage = None
 
+REPORTS_DIR = os.path.join(os.path.dirname(__file__), 'reports')
+os.makedirs(REPORTS_DIR, exist_ok=True)
 
 class ExamSession:
     """Complete exam session with ALL detection features"""
@@ -477,6 +479,22 @@ def health_check():
         'timestamp': datetime.now().isoformat()
     })
 
+@app.route('/api/exam/upload_report', methods=['POST', 'OPTIONS'])
+def upload_report():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'})
+    if 'pdf' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    file = request.files['pdf']
+    session_id = request.form.get('session_id', 'unknown')
+    filename = f"Report_{session_id}.pdf"
+    filepath = os.path.join(REPORTS_DIR, filename)
+    file.save(filepath)
+    return jsonify({'status': 'success', 'url': f"/reports/{filename}"})
+
+@app.route('/reports/<path:filename>')
+def serve_report(filename):
+    return send_from_directory(REPORTS_DIR, filename)
 
 @app.route('/api/system/check_apps', methods=['POST', 'OPTIONS'])
 def check_apps():
@@ -601,6 +619,108 @@ def end_exam():
         
         session = active_sessions[session_id]
         session.is_active = False
+        
+        # ----------------------------------------------------
+        # EXAM AUTOMATED GRADING ENGINE
+        # ----------------------------------------------------
+        answers = data.get('answers', [])
+        exam_points = 0
+        total_possible = 0
+        graded_results = []
+        
+        if session.exam_id in exams_db and answers:
+            exam = exams_db[session.exam_id]
+            questions = exam.get('questions', [])
+            
+            for user_ans in answers:
+                idx = user_ans.get('q_num')
+                if idx is not None and idx < len(questions):
+                    q = questions[idx]
+                    pts = q.get('points', 10)
+                    total_possible += pts
+                    
+                    graded = {'q_num': idx, 'type': q['type'], 'points_awarded': 0, 'max_points': pts, 'is_correct': False}
+                    
+                    # Grade Multiple Choice
+                    if q['type'] == 'multiple_choice':
+                        if user_ans.get('selected') == q.get('correctOption'):
+                            graded['points_awarded'] = pts
+                            graded['is_correct'] = True
+                            
+                    # Grade Long Form Text via Keywords
+                    elif q['type'] == 'text':
+                        kws = q.get('keywords', [])
+                        text_val = user_ans.get('text', '').lower()
+                        if not kws:
+                            if text_val.strip():
+                                graded['points_awarded'] = pts
+                                graded['is_correct'] = True
+                        else:
+                            found = sum(1 for kw in kws if kw.lower() in text_val)
+                            if found > 0:
+                                graded['points_awarded'] = round((found / len(kws)) * pts, 1)
+                                graded['is_correct'] = found == len(kws)
+                                
+                    # Grade Programming Code via Execution Sandbox
+                    elif q['type'] == 'programming':
+                        import subprocess
+                        import tempfile
+                        import os
+                        
+                        lang = user_ans.get('lang', 'python')
+                        code = user_ans.get('code', '')
+                        test_cases = q.get('testCases', [])
+                        all_passed = True
+                        
+                        if code.strip() and test_cases:
+                            with tempfile.TemporaryDirectory() as temp_dir:
+                                timeout = 3
+                                run_cmd = []
+                                compile_ok = True
+                                
+                                if lang == 'python':
+                                    file_path = os.path.join(temp_dir, 'main.py')
+                                    with open(file_path, 'w') as f: f.write(code)
+                                    run_cmd = ['python3', file_path]
+                                elif lang == 'javascript':
+                                    file_path = os.path.join(temp_dir, 'main.js')
+                                    with open(file_path, 'w') as f: f.write(code)
+                                    run_cmd = ['node', file_path]
+                                elif lang == 'cpp':
+                                    file_path = os.path.join(temp_dir, 'main.cpp')
+                                    out_path = os.path.join(temp_dir, 'a.out')
+                                    with open(file_path, 'w') as f: f.write(code)
+                                    compile_result = subprocess.run(['g++', file_path, '-o', out_path], capture_output=True, timeout=5)
+                                    if compile_result.returncode != 0:
+                                        compile_ok = False
+                                        all_passed = False
+                                    run_cmd = [out_path]
+                                
+                                if compile_ok and run_cmd:
+                                    for tc in test_cases:
+                                        try:
+                                            res = subprocess.run(run_cmd, input=tc.get('input',''), capture_output=True, text=True, timeout=timeout)
+                                            if res.returncode != 0 or res.stdout.strip() != tc.get('expected','').strip():
+                                                all_passed = False
+                                                break
+                                        except:
+                                            all_passed = False
+                                            break
+                        else:
+                            all_passed = False
+                            
+                        if all_passed:
+                            graded['points_awarded'] = pts
+                            graded['is_correct'] = True
+
+                    exam_points += graded['points_awarded']
+                    graded_results.append(graded)
+
+        # Attach to session so it can be picked up by the report route
+        session.exam_score = exam_points
+        session.exam_total = total_possible
+        session.graded_results = graded_results
+        # ----------------------------------------------------
         
         # Calculate all final scores (NO FACE SCORE)
         eye_score = session.update_eye_gaze_score('center')
@@ -737,6 +857,38 @@ def end_exam():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/exam/reports', methods=['GET'])
+def get_all_reports():
+    reports = []
+    
+    # Check current active sessions (they may not have final reports, but could show up as 'in progress')
+    # For now, just load saved completed reports from JSON and Encrypted folders.
+    
+    reports_dir = os.path.join(os.path.dirname(__file__), 'reports')
+    if os.path.exists(reports_dir):
+        for filename in os.listdir(reports_dir):
+            if filename.endswith('_report.json'):
+                try:
+                    with open(os.path.join(reports_dir, filename), 'r') as f:
+                        data = json.load(f)
+                        reports.append({
+                            'session_id': data.get('session_id', ''),
+                            'student_id': data.get('student_id', 'Unknown'),
+                            'exam_id': data.get('exam_id', ''),
+                            'exam_name': data.get('exam_name', 'Unknown'),
+                            'start_time': data.get('start_time', ''),
+                            'end_time': data.get('end_time', ''),
+                            'overall_score': data.get('overall_score', 0),
+                            'auto_submitted': data.get('auto_submitted', False),
+                            'pdf_url': f"/reports/Report_{data.get('session_id')}.pdf" if os.path.exists(os.path.join(REPORTS_DIR, f"Report_{data.get('session_id')}.pdf")) else None
+                        })
+                except Exception as e:
+                    print(f"Error loading report {filename}: {e}")
+                    
+    # Sort by end_time or start_time descending
+    reports.sort(key=lambda x: x.get('end_time') or x.get('start_time', ''), reverse=True)
+    return jsonify({'status': 'success', 'reports': reports})
+
 @app.route('/api/exam/report/<session_id>', methods=['GET'])
 def get_report(session_id):
     try:
@@ -836,7 +988,10 @@ def get_report(session_id):
             },
             'lip_metrics': {  #  Added for dashboard
                 'detections': session.lip_detections if hasattr(session, 'lip_detections') else 0
-            }
+            },
+            'exam_score': getattr(session, 'exam_score', 0),
+            'exam_total': getattr(session, 'exam_total', 0),
+            'graded_results': getattr(session, 'graded_results', [])
         })
     
     except Exception as e:

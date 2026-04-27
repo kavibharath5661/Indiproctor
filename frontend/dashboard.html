@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Exam Integrity Report</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -361,6 +362,11 @@
                 <div class="score-number" id="overallScore">--</div>
                 <div class="score-badge" id="scoreBadge">--</div>
             </div>
+            <div class="score-display" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); margin-left: 20px;">
+                <div class="score-label" style="color: rgba(255,255,255,0.9)">Exam Assessment</div>
+                <div class="score-number" id="examScore">--</div>
+                <div class="score-badge" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: bold;">Score / Total</div>
+            </div>
             <div style="flex: 1; min-width: 0; max-width: 300px;">
                 <canvas id="scoreDoughnutChart" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));"></canvas>
             </div>
@@ -427,6 +433,18 @@
             </div>
         </div>
 
+
+        <!-- ========================================== -->
+        <!-- EXAM RESULTS DETAILS SECTION -->
+        <!-- ========================================== -->
+        <div class="results-section" style="margin-top: 40px; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none;" id="examResultsSection">
+            <h2 style="font-size: 24px; margin-bottom: 20px; color: #1e293b; border-bottom: 4px solid #10b981; padding-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                Exam Assessment Breakdown
+            </h2>
+            <div id="examResultsList" style="display: flex; flex-direction: column; gap: 15px;">
+                <!-- Dynamically populated via JS -->
+            </div>
+        </div>
 
         <!-- ========================================== -->
         <!-- VIOLATIONS SUMMARY SECTION -->
@@ -612,8 +630,8 @@
                 }
             }
             
-            // Eye gaze violations - access from eye_metrics
-            const eyeGazeCount = data.eye_metrics?.looking_away_count || data.looking_away_count || 0;
+            // Eye gaze violations - access from gaze_metrics
+            const eyeGazeCount = data.gaze_metrics?.looking_away_count || 0;
             if (eyeGazeCount > 0) {  // Show if any look away happened
                 const card = document.getElementById('eyeGazeViolationCard');
                 if (card) {
@@ -627,8 +645,8 @@
                 }
             }
             
-            // Lip movement violations - access from lip_metrics
-            const lipMovementCount = data.lip_metrics?.detections || data.lip_detections || 0;
+            // Lip movement violations - access from lip_movement_metrics
+            const lipMovementCount = data.lip_movement_metrics?.total_detections || 0;
             if (lipMovementCount > 0) {  // Only show if significant
                 const card = document.getElementById('lipMovementViolationCard');
                 if (card) {
@@ -743,6 +761,39 @@ async function loadReport() {
             const date = new Date(dateStr);
             document.getElementById('examDate').textContent = date.toLocaleString();
             
+            // Exam Results Section
+            if (data.exam_total !== undefined && data.exam_total > 0) {
+                document.getElementById('examScore').innerHTML = `${data.exam_score} <span style="font-size: 28px; color: rgba(255,255,255,0.7);">/ ${data.exam_total}</span>`;
+                
+                if (data.graded_results && data.graded_results.length > 0) {
+                    document.getElementById('examResultsSection').style.display = 'block';
+                    const resultsList = document.getElementById('examResultsList');
+                    resultsList.innerHTML = '';
+                    
+                    data.graded_results.forEach(res => {
+                        const isCorr = res.is_correct;
+                        const bg = isCorr ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+                        const border = isCorr ? '#10b981' : '#ef4444';
+                        const icon = isCorr ? '✓ Correct' : '✕ Incorrect';
+                        
+                        let html = `
+                            <div style="background: ${bg}; border-left: 4px solid ${border}; padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="margin: 0 0 5px 0; color: #334155; font-size: 16px;">Question ${res.q_num + 1} <span style="font-size: 12px; color: #64748b; font-weight: normal; margin-left: 8px; text-transform: uppercase;">(${res.type.replace('_', ' ')})</span></h4>
+                                    <div style="color: ${border}; font-weight: bold; font-size: 14px;">${icon}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 20px; font-weight: 800; color: #1e293b;">${res.points_awarded}<span style="font-size: 14px; color: #64748b; font-weight: normal;"> / ${res.max_points} pts</span></div>
+                                </div>
+                            </div>
+                        `;
+                        resultsList.insertAdjacentHTML('beforeend', html);
+                    });
+                }
+            } else {
+                document.getElementById('examScore').textContent = 'NIL';
+            }
+            
             // Component scores
             let eyeScore = Math.round(data.component_scores?.eye_gaze || 0);
             let speechScore = Math.round(data.component_scores?.speech || 0);
@@ -785,6 +836,47 @@ async function loadReport() {
 
             // Chart.js Graphs setup
             initCharts(data, eyeScore, speechScore, gadgetScore);
+
+            // ✅ FIX: Auto-generate and upload PDF
+            setTimeout(() => {
+                const element = document.getElementById('report');
+                const btnActions = document.querySelector('.actions');
+                // Temporarily hide buttons from PDF
+                if (btnActions) btnActions.style.visibility = 'hidden';
+
+                const opt = {
+                    margin: 0.5,
+                    filename: `Report_${data.session_id}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+
+                html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
+                    if (btnActions) btnActions.style.visibility = 'visible';
+                    const formData = new FormData();
+                    formData.append('pdf', pdfBlob, `Report_${data.session_id}.pdf`);
+                    formData.append('session_id', data.session_id);
+                    fetch(`${API_URL}/api/exam/upload_report`, {
+                        method: 'POST',
+                        body: formData
+                    }).then(res => res.json()).then(result => {
+                        if (result.status === 'success') {
+                            const btn = document.createElement('a');
+                            btn.className = 'btn btn-primary';
+                            btn.href = `${API_URL}${result.url}`;
+                            btn.target = '_blank';
+                            btn.textContent = 'View Server PDF';
+                            btn.style.marginLeft = '10px';
+                            btn.style.background = '#8b5cf6';
+                            btnActions.appendChild(btn);
+                        }
+                    }).catch(err => console.error('Failed to upload PDF:', err));
+                }).catch(err => {
+                    if (btnActions) btnActions.style.visibility = 'visible';
+                    console.error('PDF generation failed:', err);
+                });
+            }, 1500); // wait for charts to render and animations to finish
         }
         
         function initCharts(data, eyeScore, speechScore, gadgetScore) {

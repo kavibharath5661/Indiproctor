@@ -13,5 +13,5 @@ if (window.location.hostname === "localhost" || window.location.hostname === "12
 } else {
     // NOTE: When deploying to GitHub Pages, Netlify, or Vercel, replace the string below
     // with the exact Web Service URL generated when you deploy the Docker container to Render.
-    API_URL = 'https://indiproctor.onrender.com';
+    API_URL = 'https://indiproctor-backend.onrender.com';
 }

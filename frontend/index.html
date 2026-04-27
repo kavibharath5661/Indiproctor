@@ -1147,7 +1147,7 @@
             
             // Send if voice detected OR if background is loud (for environment tracking)
             const now = Date.now();
-            const isLoudEnvironment = avgLevel > 25 && !isVoiceDetected;
+            const isLoudEnvironment = avgLevel > 35 && !isVoiceDetected;
             
             if ((isVoiceDetected || isLoudEnvironment) && now - lastAudioSend > 500) {
                 if (socket && socket.connected) {
@@ -1394,8 +1394,8 @@
                 console.log('🚨 AUTO-SUBMIT TRIGGERED:', data.reason);
                 clearInterval(timerInterval);
                 
-                showModal('EXAM AUTOMATICALLY SUBMITTED', `${data.reason || 'Three strikes reached'}\n\nYou will be redirected to results.`, [
-                    { text: 'View Results', primary: true, onClick: () => {
+                showModal('EXAM AUTOMATICALLY SUBMITTED', `${data.reason || 'Three strikes reached'}\n\nYou will be redirected to the home page.`, [
+                    { text: 'Return to Home', primary: true, onClick: () => {
                         closeModal();
                         submitExam(true);
                     }}
@@ -1542,12 +1542,33 @@
 
         async function submitExam(isAutoSubmit = false) {
             try {
+                // Collect All Answers
+                const answers = [];
+                examQuestions.forEach((q, index) => {
+                    let answerData = { q_num: index, type: q.type };
+                    
+                    if (q.type === 'multiple_choice') {
+                        const checked = document.querySelector(`input[name="answer-${index}"]:checked`);
+                        answerData.selected = checked ? parseInt(checked.value) : -1;
+                    } else if (q.type === 'programming') {
+                        const codeEl = document.getElementById(`answer-${index}`);
+                        const langEl = document.getElementById(`prog-lang-${index}`);
+                        answerData.code = codeEl ? codeEl.value : '';
+                        answerData.lang = langEl ? langEl.value : 'python';
+                    } else {
+                        const textEl = document.getElementById(`answer-${index}`);
+                        answerData.text = textEl ? textEl.value : '';
+                    }
+                    answers.push(answerData);
+                });
+
                 const response = await fetch(`${API_URL}/api/exam/end`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         session_id: sessionId,
-                        auto_submitted: isAutoSubmit
+                        auto_submitted: isAutoSubmit,
+                        answers: answers
                     })
                 });
 
@@ -1558,7 +1579,9 @@
                 isExamActive = false;
                 clearInterval(timerInterval);
 
-                window.location.href = `dashboard.html?session=${sessionId}`;
+                showModal('Success', 'Exam submitted successfully! Thank you.', [
+                    {text: 'Return to Home', primary: true, onClick: () => { window.location.href = 'index.html'; }}
+                ]);
             } catch (error) {
                 showModal('Error', 'Failed to submit exam. Please check your connection.', [
                     {text: 'Retry', primary: true, onClick: closeModal}

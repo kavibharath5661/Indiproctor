@@ -17,5 +17,5 @@ services:
     region: ohio
     rootDir: frontend
     buildCommand: "" # No build required for static HTML/JS
-    publishPath: . # Publish the root of the frontend folder
+    staticPublishPath: . # Publish the root of the frontend folder
     autoDeploy: false

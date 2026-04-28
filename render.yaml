@@ -13,8 +13,7 @@ services:
   # Frontend Static Site
   - type: web
     name: indiproctor-frontend
-    env: static
-    rootDir: frontend
+    runtime: static
     buildCommand: "" # No build required for static HTML/JS
-    staticPublishPath: . # Publish the root of the frontend folder
+    staticPublishPath: frontend # Publish the frontend folder directly
     autoDeploy: false

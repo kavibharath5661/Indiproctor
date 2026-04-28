@@ -14,7 +14,6 @@ services:
   - type: web
     name: indiproctor-frontend
     env: static
-    region: ohio
     rootDir: frontend
     buildCommand: "" # No build required for static HTML/JS
     staticPublishPath: . # Publish the root of the frontend folder

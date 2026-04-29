@@ -336,11 +336,23 @@
         Loading Exam Report...
     </div>
     
-    <div id="error" class="container" style="display:none;">
+    <div id="error" class="container" style="display:none; margin-top: 50px;">
         <div class="error-container">
-            <div class="error-icon">!</div>
+            <div class="error-icon">⚠️</div>
             <div class="error-title">Unable to Load Report</div>
-            <div class="error-message" id="errorMessage"></div>
+            <div class="error-message" id="errorMessage" style="margin-bottom: 24px;"></div>
+            
+            <div style="background: white; padding: 24px; border-radius: 12px; max-width: 450px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <p style="color: #0f172a; font-weight: 600; margin-bottom: 16px; font-size: 16px;">Please enter a Session ID manually:</p>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="manualSessionInput" placeholder="Enter Session ID..." style="flex: 1; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-size: 14px; font-family: inherit;" onkeydown="if(event.key === 'Enter') { const sid = this.value.trim(); if(sid) window.location.href='?session='+sid; }">
+                    <button onclick="const sid = document.getElementById('manualSessionInput').value.trim(); if(sid) window.location.href='?session='+sid;" class="btn btn-primary" style="padding: 12px 24px;">View</button>
+                </div>
+                <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                    <p style="color: #64748b; font-size: 14px; margin-bottom: 12px;">Or view all reports in the examiner portal:</p>
+                    <a href="examiner.html" class="btn btn-secondary" style="width: 100%; text-align: center; padding: 12px; display: block;">Go to Examiner Portal</a>
+                </div>
+            </div>
         </div>
     </div>
     
